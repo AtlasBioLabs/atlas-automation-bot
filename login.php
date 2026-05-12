@@ -22,9 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 render_header('Admin Login');
 ?>
-<div class="row justify-content-center">
-  <div class="col-md-6 col-lg-4">
-    <div class="card shadow-sm">
+<div class="row justify-content-center align-items-center" style="min-height:calc(100vh - 180px);">
+  <div class="col-12 col-sm-10 col-md-6 col-lg-4">
+    <div class="text-center mb-4">
+      <div class="small text-uppercase text-muted fw-semibold mb-2">Atlas BioLabs Automation Bot</div>
+      <h2 class="h3 mb-2">Admin Login</h2>
+      <div class="text-muted">Secure access for campaigns, queue management, RFQs, and reporting.</div>
+    </div>
+    <div class="card shadow-sm border-0" style="border-radius:20px;">
       <div class="card-body p-4">
         <?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
         <?php if (Auth::adminCount() === 0): ?>

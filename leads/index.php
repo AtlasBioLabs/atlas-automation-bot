@@ -97,7 +97,7 @@ $leads = $stmt->fetchAll();
 
 render_header('Leads');
 ?>
-<div class="d-flex gap-2 mb-3">
+<div class="d-grid d-md-flex gap-2 mb-3 action-stack">
   <a class="btn btn-primary" href="/leads/create.php">New lead</a>
   <a class="btn btn-outline-secondary" href="/leads/import.php">Import CSV</a>
   <a class="btn btn-outline-primary" href="/queue/create.php?send_type=filtered&<?= e(http_build_query($_GET)) ?>">Queue Email to Filtered Leads</a>
@@ -137,14 +137,40 @@ render_header('Leads');
       <div class="col-md-3"><label class="form-label">Campaign name</label><input class="form-control" name="campaign_name" value="Selected leads campaign"></div>
       <div class="col-md-2"><label class="form-label">Template</label><select class="form-select" name="template_id"><option value="">Template</option><?php foreach ($templates as $template): ?><option value="<?= e($template['id']) ?>"><?= e($template['name']) ?></option><?php endforeach; ?></select></div>
       <div class="col-md-2"><label class="form-label">Schedule</label><input class="form-control" type="datetime-local" name="scheduled_at" value="<?= e(app_local_input_value(null, $businessId)) ?>"></div>
-      <div class="col-md-2 d-flex gap-2">
+      <div class="col-md-2 d-grid gap-2 d-md-flex">
         <button class="btn btn-primary w-100" type="submit" formaction="/queue/create.php">Preview Selected</button>
         <button class="btn btn-outline-danger w-100" type="submit" onclick="return confirm(document.getElementById('bulk_action').value === 'delete_selected' ? 'Permanently delete the selected leads? This removes identifying data but keeps queue and campaign history.' : 'Apply the selected lead action?');">Apply</button>
       </div>
     </div>
   </div>
 <div class="card shadow-sm">
-  <div class="table-responsive">
+  <div class="mobile-card-list p-3">
+    <?php foreach ($leads as $lead): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+              <div class="mobile-meta">Lead</div>
+              <div class="fw-semibold"><a href="/leads/edit.php?id=<?= e($lead['id']) ?>" class="text-decoration-none"><?= e($lead['company_name']) ?></a></div>
+              <div class="small text-muted"><?= e($lead['contact_name']) ?></div>
+            </div>
+            <div><input class="form-check-input lead-check" type="checkbox" name="selected_lead_ids[]" value="<?= e($lead['id']) ?>"></div>
+          </div>
+          <div class="small text-break mb-2"><?= e($lead['email']) ?></div>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge text-bg-light border"><?= e($lead['category']) ?></span>
+            <?= badge_status($lead['status']) ?>
+            <span class="badge text-bg-<?= !empty($lead['deleted_at']) ? 'dark' : (!empty($lead['archived_at']) ? 'warning' : 'success') ?>"><?= e(LeadService::stateLabel($lead)) ?></span>
+          </div>
+          <div class="small text-muted mb-3">Next follow-up: <?= e(format_app_datetime($lead['next_followup_at'], $businessId)) ?></div>
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-primary" href="/leads/edit.php?id=<?= e($lead['id']) ?>">Edit Lead</a>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="table-responsive desktop-table-only">
     <table class="table mb-0 align-middle">
       <thead><tr><th><input type="checkbox" onclick="document.querySelectorAll('.lead-check').forEach(cb => cb.checked = this.checked)"></th><th>Company</th><th>Contact</th><th>Email</th><th>Category</th><th>Status</th><th>State</th><th>Next follow-up</th><th></th></tr></thead>
       <tbody>

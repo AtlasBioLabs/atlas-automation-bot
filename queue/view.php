@@ -134,6 +134,27 @@ $render = (!empty($queue['rendered_subject']) && (!empty($queue['rendered_html']
 
 render_header('Queue Email Detail');
 ?>
+<style>
+  .email-preview-frame {
+    background: linear-gradient(180deg, #f7fafd 0%, #eef4fa 100%);
+    border: 1px solid #dbe6f1;
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .email-preview-canvas {
+    background: #ffffff;
+    border: 1px solid #d6e0eb;
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(10, 26, 47, 0.08);
+    overflow: hidden;
+  }
+  .email-preview-meta {
+    background: #f7fafd;
+    border: 1px solid #dce6f2;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+</style>
 <div class="d-flex gap-2 mb-3">
   <a class="btn btn-outline-secondary" href="/queue/index.php">Back to queue</a>
   <?php if (!empty($queue['campaign_id'])): ?><a class="btn btn-outline-primary" href="/campaigns/view.php?id=<?= e($queue['campaign_id']) ?>">Open campaign</a><?php endif; ?>
@@ -180,14 +201,29 @@ render_header('Queue Email Detail');
   <div class="col-lg-8">
     <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <h2 class="h5">Rendered Subject</h2>
-        <pre class="bg-light border rounded p-3"><?= e($render['subject']) ?></pre>
+        <h2 class="h5 mb-3">Rendered Email</h2>
+        <div class="email-preview-meta mb-3">
+          <div class="small text-muted mb-1">Subject</div>
+          <div class="fw-semibold"><?= e($render['subject']) ?></div>
+        </div>
         <?php if ($render['preheader'] !== ''): ?>
-          <h3 class="h6">Preheader</h3>
-          <pre class="bg-light border rounded p-3"><?= e($render['preheader']) ?></pre>
+          <div class="email-preview-meta mb-3">
+            <div class="small text-muted mb-1">Preheader</div>
+            <div><?= e($render['preheader']) ?></div>
+          </div>
         <?php endif; ?>
-        <h3 class="h6">HTML Email Preview</h3>
-        <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e($render['html']) ?>"></iframe>
+        <h3 class="h6 mb-3">Desktop Preview</h3>
+        <div class="email-preview-frame mb-4">
+          <div class="email-preview-canvas mx-auto" style="max-width:680px;">
+            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($render['html']) ?>"></iframe>
+          </div>
+        </div>
+        <h3 class="h6 mb-3">Mobile Preview</h3>
+        <div class="email-preview-frame">
+          <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
+            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($render['html']) ?>"></iframe>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card shadow-sm mb-4">

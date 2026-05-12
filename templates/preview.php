@@ -46,6 +46,27 @@ $preview = Mailer::renderTemplate($template, $selectedLead, $business);
 
 render_header('Template Preview');
 ?>
+<style>
+  .email-preview-frame {
+    background: linear-gradient(180deg, #f7fafd 0%, #eef4fa 100%);
+    border: 1px solid #dbe6f1;
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .email-preview-canvas {
+    background: #ffffff;
+    border: 1px solid #d6e0eb;
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(10, 26, 47, 0.08);
+    overflow: hidden;
+  }
+  .email-preview-meta {
+    background: #f7fafd;
+    border: 1px solid #dce6f2;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+</style>
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <form class="row g-3">
@@ -91,19 +112,27 @@ render_header('Template Preview');
   <div class="col-lg-8">
     <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <h2 class="h5">Desktop Preview</h2>
-        <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+        <h2 class="h5 mb-3">Desktop Preview</h2>
+        <div class="email-preview-frame">
+          <div class="email-preview-canvas mx-auto" style="max-width:680px;">
+            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <h2 class="h5">Mobile Preview</h2>
-        <iframe class="d-block mx-auto border rounded bg-white" style="width:100%;max-width:390px;min-height:640px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+        <h2 class="h5 mb-3">Mobile Preview</h2>
+        <div class="email-preview-frame">
+          <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
+            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+          </div>
+        </div>
       </div>
     </div>
     <div class="card shadow-sm">
       <div class="card-body">
-        <h2 class="h5">Plain Text Fallback</h2>
+        <h2 class="h5 mb-3">Plain Text Fallback</h2>
         <pre class="bg-light border rounded p-3 mb-0" style="white-space:pre-wrap"><?= e($preview['text']) ?></pre>
       </div>
     </div>

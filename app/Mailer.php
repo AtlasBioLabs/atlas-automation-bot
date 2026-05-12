@@ -592,8 +592,8 @@ final class Mailer
         $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Premium sourcing communication for qualified B2B buyers.'));
 
         $logoMarkup = $logo !== ''
-            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:210px;width:100%;height:auto;border:0;">'
-            : '<div style="font-size:28px;font-weight:700;line-height:34px;color:' . e($secondary) . ';letter-spacing:0;">' . e($brand) . '</div>';
+            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:190px;width:100%;height:auto;border:0;">'
+            : '<div style="font-size:26px;font-weight:700;line-height:32px;color:' . e($secondary) . ';letter-spacing:0;">' . e($brand) . '</div>';
 
         $secondaryCtaMarkup = $website !== ''
             ? '<a href="' . e($website) . '" style="color:' . e($accent) . ';text-decoration:none;font-weight:600;">View company profile</a>'
@@ -602,18 +602,23 @@ final class Mailer
             ? '<p style="margin:12px 0 0;color:#5B6B7E;font-size:12px;line-height:18px;">' . e($unsubscribeText) . ' <a href="' . e($unsubscribe) . '" style="color:' . e($accent) . ';">Unsubscribe</a></p>'
             : '';
         $headerPill = '<span style="display:inline-block;background:#113158;border:1px solid rgba(255,255,255,0.12);color:#D6E5FF;padding:8px 13px;border-radius:999px;font-size:12px;line-height:12px;font-weight:700;letter-spacing:0.2px;">' . e($brand) . '</span>';
+        $heroMeta = $website !== ''
+            ? '<a href="' . e($website) . '" style="color:#CFE0FF;text-decoration:none;">' . e(preg_replace('#^https?://#', '', $website) ?? $website) . '</a>'
+            : 'Qualified B2B sourcing communication';
+        $heroSupportLine = 'Built for clear commercial follow-up, documentation-aware discussion, and qualified supply coordination.';
+        $logoCard = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#102744;border:1px solid #23466E;border-radius:18px;"><tr><td style="padding:16px 18px;">' . $logoMarkup . '</td></tr></table>';
         $trustRows = [
-            ['title' => 'MOQ flexibility support', 'copy' => 'Practical quantity planning for early-stage and scaling programs.'],
-            ['title' => 'Documentation support', 'copy' => 'Clear, review-ready follow-up for qualified sourcing discussions.'],
-            ['title' => 'Sourcing coordination', 'copy' => 'Professional B2B communication from RFQ through next-step alignment.'],
+            ['title' => 'MOQ flexibility', 'copy' => 'Structured quantity planning for early-stage and scaling programs.'],
+            ['title' => 'Documentation support', 'copy' => 'Clear, review-ready discussion for technical and commercial review.'],
+            ['title' => 'Qualified supply dialogue', 'copy' => 'Commercially clear communication from inquiry through next-step alignment.'],
         ];
         $trustMarkup = '';
         foreach ($trustRows as $row) {
             $trustMarkup .= '<td width="33.33%" valign="top" style="padding:0 10px 0 0;">'
-                . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#112949;border:1px solid #1E4068;border-radius:16px;"><tr><td style="padding:16px 16px 15px;">'
-                . '<div style="width:34px;height:34px;background:' . e($accent) . ';border-radius:12px;font-size:0;line-height:0;">&nbsp;</div>'
-                . '<div style="margin-top:14px;font-size:14px;line-height:20px;font-weight:700;color:#FFFFFF;">' . e($row['title']) . '</div>'
-                . '<div style="margin-top:6px;font-size:12px;line-height:19px;color:#AFC1D7;">' . e($row['copy']) . '</div>'
+                . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#102643;border:1px solid #24476F;border-radius:16px;"><tr><td style="padding:16px 16px 15px;">'
+                . '<div style="width:36px;height:36px;background:#173A63;border:1px solid #3D6DA8;border-radius:12px;font-size:0;line-height:0;">&nbsp;</div>'
+                . '<div style="margin-top:13px;font-size:14px;line-height:20px;font-weight:700;color:#FFFFFF;">' . e($row['title']) . '</div>'
+                . '<div style="margin-top:6px;font-size:12px;line-height:19px;color:#B6C8DD;">' . e($row['copy']) . '</div>'
                 . '</td></tr></table>'
                 . '</td>';
         }
@@ -628,20 +633,21 @@ final class Mailer
             . '<tr><td style="padding:22px 30px 0;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
             . '<td valign="middle">' . $headerPill . '</td>'
-            . '<td align="right" valign="middle" style="font-size:12px;line-height:18px;color:#9CB3CE;">' . ($website !== '' ? '<a href="' . e($website) . '" style="color:#CFE0FF;text-decoration:none;">' . e(preg_replace('#^https?://#', '', $website) ?? $website) . '</a>' : 'Qualified B2B sourcing communication') . '</td>'
+            . '<td align="right" valign="middle" style="font-size:12px;line-height:18px;color:#9CB3CE;">' . $heroMeta . '</td>'
             . '</tr></table>'
             . '</td></tr>'
-            . '<tr><td style="padding:20px 30px 12px;">'
+            . '<tr><td style="padding:18px 30px 10px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
-            . '<td valign="top" style="padding:0 24px 0 0;">' . $logoMarkup . '</td>'
+            . '<td valign="top" width="210" style="padding:0 24px 0 0;">' . $logoCard . '</td>'
             . '<td valign="top" width="100%">'
             . ($tagline !== '' ? '<div style="font-size:13px;line-height:20px;color:#AFC1D7;font-weight:600;letter-spacing:0.2px;">' . e($tagline) . '</div>' : '')
-            . '<div style="margin-top:10px;font-size:31px;line-height:38px;font-weight:700;color:#FFFFFF;letter-spacing:0;">' . e($subject) . '</div>'
-            . '<div style="margin-top:12px;font-size:16px;line-height:25px;color:#D8E5F5;max-width:470px;">' . e($subheadline) . '</div>'
+            . '<div style="margin-top:10px;font-size:32px;line-height:39px;font-weight:700;color:#FFFFFF;letter-spacing:0;">' . e($subject) . '</div>'
+            . '<div style="margin-top:12px;font-size:16px;line-height:25px;color:#D8E5F5;max-width:430px;">' . e($subheadline) . '</div>'
+            . '<div style="margin-top:12px;font-size:13px;line-height:21px;color:#9CB7D4;max-width:430px;">' . e($heroSupportLine) . '</div>'
             . '</td>'
             . '</tr></table>'
             . '</td></tr>'
-            . '<tr><td style="padding:14px 30px 28px;">'
+            . '<tr><td style="padding:16px 30px 28px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
             . $trustMarkup
             . '</tr></table>'
@@ -650,7 +656,8 @@ final class Mailer
             . '</td></tr>'
             . '<tr><td>'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#FFFFFF;border:1px solid #DCE6F2;border-radius:22px;overflow:hidden;box-shadow:0 12px 36px rgba(10,26,47,0.06);">'
-            . '<tr><td style="padding:10px 32px 0;"><div style="height:1px;background:#E8EEF5;font-size:0;line-height:0;">&nbsp;</div></td></tr>'
+            . '<tr><td style="padding:0 32px;"><div style="height:6px;background:linear-gradient(90deg, ' . e($accent) . ' 0%, #8BB1FF 55%, #E7F0FF 100%);font-size:0;line-height:0;">&nbsp;</div></td></tr>'
+            . '<tr><td style="padding:12px 32px 0;"><div style="height:1px;background:#E8EEF5;font-size:0;line-height:0;">&nbsp;</div></td></tr>'
             . '<tr><td style="padding:30px 32px 12px;color:#243548;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:26px;">' . $bodyHtml . '</td></tr>'
             . '<tr><td style="padding:0 32px 30px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F7FAFD;border:1px solid #DCE6F2;border-radius:18px;"><tr>'

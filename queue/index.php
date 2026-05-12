@@ -70,7 +70,7 @@ $rows = $stmt->fetchAll();
 
 render_header('Email Queue');
 ?>
-<div class="d-flex flex-wrap gap-2 mb-3">
+<div class="d-grid d-md-flex gap-2 mb-3 action-stack">
   <a class="btn btn-primary" href="/queue/create.php">Create campaign queue</a>
   <form method="post" class="d-inline">
     <?= csrf_field() ?><input type="hidden" name="action" value="run_sender">
@@ -95,7 +95,41 @@ render_header('Email Queue');
   <div class="col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
 </form>
 <div class="card shadow-sm">
-  <div class="table-responsive">
+  <div class="mobile-card-list p-3">
+    <?php foreach ($rows as $row): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="mobile-meta">Queued Email</div>
+          <div class="fw-semibold mb-1">
+            <?php if (!empty($row['campaign_id'])): ?>
+              <a href="/campaigns/view.php?id=<?= e($row['campaign_id']) ?>" class="text-decoration-none"><?= e($row['campaign_name'] ?: 'Campaign #' . $row['campaign_id']) ?></a>
+            <?php else: ?>
+              <?= e($row['campaign_name'] ?: 'Direct queue') ?>
+            <?php endif; ?>
+          </div>
+          <div class="small text-muted mb-1"><?= e($row['template_name'] ?: 'Missing/inactive template') ?></div>
+          <div class="small text-break mb-2"><?= e($row['contact_name'] ?: 'Deleted lead') ?><?php if (!empty($row['company_name'])): ?> / <?= e($row['company_name']) ?><?php endif; ?></div>
+          <div class="small text-break mb-2"><?= e($row['email'] ?: 'Deleted lead') ?></div>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <?= badge_status($row['status']) ?>
+          </div>
+          <div class="small text-muted mb-1">Scheduled: <?= e(format_app_datetime($row['scheduled_at'], $businessId)) ?></div>
+          <div class="small text-muted mb-3">Sent: <?= e(format_app_datetime($row['sent_at'], $businessId)) ?></div>
+          <?php if ($row['error_message'] !== ''): ?><div class="small text-danger mb-3"><?= e($row['error_message']) ?></div><?php endif; ?>
+          <div class="d-grid gap-2">
+            <a class="btn btn-outline-secondary" href="/queue/view.php?id=<?= e($row['id']) ?>">View</a>
+            <?php if ($row['status'] === 'pending'): ?>
+              <form method="post">
+                <?= csrf_field() ?><input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="<?= e($row['id']) ?>">
+                <button class="btn btn-outline-danger w-100" type="submit">Cancel</button>
+              </form>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="table-responsive desktop-table-only">
     <table class="table mb-0 align-middle">
       <thead><tr><th>Campaign</th><th>Lead</th><th>Company</th><th>Template</th><th>Scheduled</th><th>Status</th><th>Sent</th><th>Error</th><th></th></tr></thead>
       <tbody>

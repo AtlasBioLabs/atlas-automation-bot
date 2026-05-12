@@ -52,7 +52,23 @@ render_header('Dashboard');
 </div>
 <div class="card shadow-sm">
   <div class="card-header bg-white fw-semibold">Recent Leads</div>
-  <div class="table-responsive">
+  <div class="mobile-card-list p-3">
+    <?php foreach ($recentLeads as $lead): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="mobile-meta">Recent Lead</div>
+          <div class="fw-semibold mb-1"><a href="/leads/edit.php?id=<?= e($lead['id']) ?>" class="text-decoration-none"><?= e($lead['company_name']) ?></a></div>
+          <div class="mb-2 small text-break"><?= e($lead['email']) ?></div>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge text-bg-light border"><?= e($lead['category']) ?></span>
+            <?= badge_status($lead['status']) ?>
+          </div>
+          <div class="small text-muted"><?= e(format_app_datetime($lead['created_at'], $businessId)) ?></div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="table-responsive desktop-table-only">
     <table class="table mb-0 align-middle">
       <thead><tr><th>Company</th><th>Email</th><th>Category</th><th>Status</th><th>Created</th></tr></thead>
       <tbody>

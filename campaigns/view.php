@@ -104,6 +104,27 @@ $tabs = [
 
 render_header('Campaign Detail');
 ?>
+<style>
+  .email-preview-frame {
+    background: linear-gradient(180deg, #f7fafd 0%, #eef4fa 100%);
+    border: 1px solid #dbe6f1;
+    border-radius: 18px;
+    padding: 24px;
+  }
+  .email-preview-canvas {
+    background: #ffffff;
+    border: 1px solid #d6e0eb;
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(10, 26, 47, 0.08);
+    overflow: hidden;
+  }
+  .email-preview-meta {
+    background: #f7fafd;
+    border: 1px solid #dce6f2;
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+</style>
 <div class="d-flex gap-2 mb-3">
   <a class="btn btn-outline-secondary" href="/campaigns/index.php">Back to campaigns</a>
   <a class="btn btn-outline-primary" href="/queue/index.php?campaign_name=<?= urlencode((string) $campaign['name']) ?>">Open queue filter</a>
@@ -226,14 +247,32 @@ render_header('Campaign Detail');
   </table></div></div>
 <?php elseif ($tab === 'preview'): ?>
   <div class="card shadow-sm mb-4"><div class="card-body">
-    <h2 class="h5">Subject</h2>
-    <pre class="bg-light border rounded p-3"><?= e((string) $preview['subject']) ?></pre>
-    <?php if (!empty($preview['preheader'])): ?><h3 class="h6">Preheader</h3><pre class="bg-light border rounded p-3"><?= e((string) $preview['preheader']) ?></pre><?php endif; ?>
-    <h3 class="h6">HTML Preview</h3>
-    <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+    <h2 class="h5 mb-3">Rendered Email</h2>
+    <div class="email-preview-meta mb-3">
+      <div class="small text-muted mb-1">Subject</div>
+      <div class="fw-semibold"><?= e((string) $preview['subject']) ?></div>
+    </div>
+    <?php if (!empty($preview['preheader'])): ?>
+      <div class="email-preview-meta mb-3">
+        <div class="small text-muted mb-1">Preheader</div>
+        <div><?= e((string) $preview['preheader']) ?></div>
+      </div>
+    <?php endif; ?>
+    <h3 class="h6 mb-3">Desktop Preview</h3>
+    <div class="email-preview-frame mb-4">
+      <div class="email-preview-canvas mx-auto" style="max-width:680px;">
+        <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+      </div>
+    </div>
+    <h3 class="h6 mb-3">Mobile Preview</h3>
+    <div class="email-preview-frame">
+      <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
+        <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+      </div>
+    </div>
   </div></div>
   <div class="card shadow-sm"><div class="card-body">
-    <h2 class="h5">Plain Text Fallback</h2>
+    <h2 class="h5 mb-3">Plain Text Fallback</h2>
     <pre class="bg-light border rounded p-3 mb-0" style="white-space:pre-wrap"><?= e((string) $preview['text']) ?></pre>
   </div></div>
 <?php else: ?>
