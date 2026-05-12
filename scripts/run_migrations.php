@@ -41,13 +41,23 @@ foreach ($files as $file) {
     }
 
     $statements = split_sql_statements($sql);
-    $pdo->beginTransaction();
+    $transactionStarted = false;
+    $statementCount = 0;
+    try {
+        $pdo->beginTransaction();
+        $transactionStarted = true;
+    } catch (Throwable $transactionError) {
+        echo '[failed] ' . $filename . ' - unable to start migration transaction: ' . normalize_migration_error_message($transactionError->getMessage()) . PHP_EOL;
+        exit(1);
+    }
+
     try {
         foreach ($statements as $statement) {
             $trimmed = trim($statement);
             if ($trimmed === '') {
                 continue;
             }
+            $statementCount++;
             try {
                 $pdo->exec($trimmed);
             } catch (Throwable $statementError) {
@@ -60,12 +70,16 @@ foreach ($files as $file) {
 
         $track = $pdo->prepare('INSERT INTO schema_migrations (filename) VALUES (?)');
         $track->execute([$filename]);
-        $pdo->commit();
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->commit();
+        }
         $appliedNow[] = $filename;
         echo '[applied] ' . $filename . PHP_EOL;
     } catch (Throwable $throwable) {
-        $pdo->rollBack();
-        echo '[failed] ' . $filename . ' - ' . $throwable->getMessage() . PHP_EOL;
+        if ($transactionStarted && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo '[failed] ' . $filename . ' after statement ' . $statementCount . ' - ' . normalize_migration_error_message($throwable->getMessage()) . PHP_EOL;
         exit(1);
     }
 }
