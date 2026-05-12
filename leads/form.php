@@ -20,11 +20,16 @@
       </div>
       <div class="col-md-6"><label class="form-label">Source</label><input class="form-control" name="source" value="<?= e($lead['source']) ?>"<?= $leadReadOnly ? ' disabled' : '' ?>></div>
       <?php if (!empty($lead['id'])): ?>
-        <div class="col-md-3 form-check mt-5"><input class="form-check-input" type="checkbox" name="bounced" id="bounced"<?= checked((bool) $lead['bounced']) ?><?= $leadReadOnly ? ' disabled' : '' ?>><label class="form-check-label" for="bounced">Bounced</label></div>
-        <div class="col-md-3 form-check mt-5"><input class="form-check-input" type="checkbox" name="unsubscribed" id="unsubscribed"<?= checked((bool) $lead['unsubscribed']) ?><?= $leadReadOnly ? ' disabled' : '' ?>><label class="form-check-label" for="unsubscribed">Unsubscribed</label></div>
+        <div class="col-md-3"><div class="form-check mt-2 mt-md-5"><input class="form-check-input" type="checkbox" name="bounced" id="bounced"<?= checked((bool) $lead['bounced']) ?><?= $leadReadOnly ? ' disabled' : '' ?>><label class="form-check-label" for="bounced">Bounced</label></div></div>
+        <div class="col-md-3"><div class="form-check mt-2 mt-md-5"><input class="form-check-input" type="checkbox" name="unsubscribed" id="unsubscribed"<?= checked((bool) $lead['unsubscribed']) ?><?= $leadReadOnly ? ' disabled' : '' ?>><label class="form-check-label" for="unsubscribed">Unsubscribed</label></div></div>
       <?php endif; ?>
       <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="5"<?= $leadReadOnly ? ' disabled' : '' ?>><?= e($lead['notes']) ?></textarea></div>
-      <div class="col-12"><?php if (!$leadReadOnly): ?><button class="btn btn-primary" type="submit">Save lead</button><?php endif; ?> <a class="btn btn-outline-secondary" href="/leads/index.php">Back</a></div>
+      <div class="col-12">
+        <div class="d-grid d-md-flex gap-2 action-stack">
+          <?php if (!$leadReadOnly): ?><button class="btn btn-primary" type="submit">Save lead</button><?php endif; ?>
+          <a class="btn btn-outline-secondary" href="/leads/index.php">Back</a>
+        </div>
+      </div>
     </form>
   </div>
 </div>

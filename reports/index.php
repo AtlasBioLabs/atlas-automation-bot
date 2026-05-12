@@ -41,7 +41,24 @@ render_header('Reports');
       <div class="card-body">
         <h2 class="h5">Campaign Performance</h2>
       </div>
-      <div class="table-responsive">
+      <div class="mobile-card-list p-3">
+        <?php foreach ($campaignRows as $campaign): ?>
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <div class="mobile-meta">Campaign</div>
+              <div class="fw-semibold mb-1"><?= e($campaign['name']) ?></div>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <?= badge_status($campaign['status']) ?>
+                <span class="badge text-bg-light border"><?= e($campaign['audience_type']) ?></span>
+              </div>
+              <div class="small text-muted mb-1">Scheduled: <?= e(format_app_datetime($campaign['scheduled_at'], $businessId)) ?></div>
+              <div class="small text-muted">Total <?= e($campaign['total_recipients']) ?> / Eligible <?= e($campaign['eligible_recipients']) ?> / Sent <?= e($campaign['sent_count']) ?> / Failed <?= e($campaign['failed_count']) ?></div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+        <?php if (!$campaignRows): ?><div class="text-muted">No campaigns yet.</div><?php endif; ?>
+      </div>
+      <div class="table-responsive desktop-table-only">
         <table class="table mb-0 align-middle">
           <thead><tr><th>Campaign</th><th>Status</th><th>Audience</th><th>Scheduled</th><th>Total</th><th>Eligible</th><th>Skipped</th><th>Pending</th><th>Sent</th><th>Failed</th></tr></thead>
           <tbody>

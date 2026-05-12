@@ -62,7 +62,33 @@ render_header('Mail Diagnostics');
     <div class="card shadow-sm">
       <div class="card-body">
         <h2 class="h5 mb-3">Current Mail Configuration</h2>
-        <div class="table-responsive">
+        <div class="mobile-card-list">
+          <?php foreach ([
+              'Active business profile' => $business['brand_name'] . ' (#' . (string) $business['id'] . ')',
+              'MAIL_PROVIDER' => $provider,
+              'MAIL_FROM_NAME' => (string) $business['sender_name'],
+              'MAIL_FROM_EMAIL' => (string) $business['sender_email'],
+              'MAIL_REPLY_TO' => $replyTo !== '' ? $replyTo : '(empty)',
+              'MAIL_API_KEY in env' => $mailApiKeyExists ? 'yes' : 'no',
+              'APP_URL' => (string) app_config('app_url', ''),
+              'PHP cURL extension' => $curlEnabled ? 'enabled' : 'missing',
+              'Selected provider valid' => $providerValid ? 'yes' : 'no',
+              'Server timezone' => $serverTimezone,
+              'Selected business timezone' => $businessTimezone,
+              'Current server time' => $serverNow->format('Y-m-d H:i:s'),
+              'Current business local time' => $localNow->format('Y-m-d H:i:s'),
+              'Current UTC time' => $utcNow->format('Y-m-d H:i:s'),
+              'Next queued email time' => $nextQueuedAt ? format_app_datetime((string) $nextQueuedAt, $businessId) : 'No pending queue items',
+          ] as $label => $value): ?>
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="mobile-meta"><?= e((string) $label) ?></div>
+                <div class="fw-semibold text-break"><?= e((string) $value) ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <div class="table-responsive desktop-table-only">
           <table class="table align-middle mb-0">
             <tbody>
               <tr><th scope="row" style="width:32%">Active business profile</th><td><?= e($business['brand_name']) ?> (#<?= e((string) $business['id']) ?>)</td></tr>
@@ -111,9 +137,9 @@ render_header('Mail Diagnostics');
             <h2 class="h5 mb-1">Brevo API Connectivity Test</h2>
             <div class="text-muted small">Calls <code>GET /v3/account</code> with the configured <code>MAIL_API_KEY</code>. This does not send a campaign or queue any emails.</div>
           </div>
-          <form method="post" class="m-0">
+          <form method="post" class="m-0 d-grid d-md-block w-100">
             <?= csrf_field() ?>
-            <button class="btn btn-outline-primary" type="submit" name="action" value="test_brevo_connection">Test Brevo API Connection</button>
+            <button class="btn btn-outline-primary w-100" type="submit" name="action" value="test_brevo_connection">Test Brevo API Connection</button>
           </form>
         </div>
 

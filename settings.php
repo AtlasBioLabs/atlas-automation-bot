@@ -217,6 +217,11 @@ render_header('Settings');
     </div></div>
   </div>
 
-  <div class="col-12"><button class="btn btn-primary" type="submit" name="action" value="save_settings">Save settings</button></div>
+  <div class="col-12">
+    <div class="d-grid d-md-flex gap-2 action-stack">
+      <button class="btn btn-primary" type="submit" name="action" value="save_settings">Save settings</button>
+      <a class="btn btn-outline-secondary" href="/tools/mail_diagnostics.php">Open diagnostics</a>
+    </div>
+  </div>
 </form>
 <?php render_footer(); ?>

@@ -37,8 +37,13 @@ $followup2 = $_POST['followup_2_days'] ?? ($formBusinessId ? Settings::get('foll
       <div class="col-12"><label class="form-label">Business address</label><textarea class="form-control" name="business_address" rows="3" required><?= e($business['business_address']) ?></textarea></div>
       <div class="col-12"><label class="form-label">Default signature</label><textarea class="form-control" name="default_signature" rows="4" required><?= e($business['default_signature']) ?></textarea></div>
       <div class="col-12"><label class="form-label">Compliance footer</label><textarea class="form-control" name="compliance_footer" rows="4" required><?= e($business['compliance_footer']) ?></textarea></div>
-      <div class="col-12 form-check ms-2"><input class="form-check-input" type="checkbox" name="active" id="active"<?= checked((bool) $business['active']) ?>><label class="form-check-label" for="active">Active</label></div>
-      <div class="col-12"><button class="btn btn-primary" type="submit">Save business</button> <a class="btn btn-outline-secondary" href="/businesses/index.php">Back</a></div>
+      <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="active" id="active"<?= checked((bool) $business['active']) ?>><label class="form-check-label" for="active">Active</label></div></div>
+      <div class="col-12">
+        <div class="d-grid d-md-flex gap-2 action-stack">
+          <button class="btn btn-primary" type="submit">Save business</button>
+          <a class="btn btn-outline-secondary" href="/businesses/index.php">Back</a>
+        </div>
+      </div>
     </form>
   </div>
 </div>

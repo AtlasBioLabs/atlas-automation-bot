@@ -66,6 +66,10 @@ render_header('Template Preview');
     border-radius: 14px;
     padding: 16px 18px;
   }
+  @media (max-width: 767.98px) {
+    .email-preview-frame { padding: 14px; }
+    .preview-iframe { min-height: 620px; }
+  }
 </style>
 <div class="card shadow-sm mb-4">
   <div class="card-body">
@@ -96,13 +100,24 @@ render_header('Template Preview');
         <div class="mb-3"><div class="small text-muted">Preheader</div><div><?= e($preview['preheader']) ?></div></div>
         <div class="mb-3"><div class="small text-muted">Sample lead</div><div><?= e(LeadService::displayName($selectedLead)) ?> / <?= e($selectedLead['company_name'] ?? '') ?></div></div>
         <div class="mb-3"><div class="small text-muted">Unsubscribe link</div><div class="small text-break"><?= e($preview['unsubscribe_link']) ?></div></div>
-        <div><div class="small text-muted">Variables rendered</div>
-          <ul class="small mb-0">
-            <?php foreach ($preview['variables'] as $token => $value): ?>
-              <li><code><?= e($token) ?></code>: <?= e((string) $value) ?></li>
-            <?php endforeach; ?>
-          </ul>
+        <div><div class="small text-muted">Variables rendered</div></div>
+        <div class="mobile-card-list">
+          <?php foreach ($preview['variables'] as $token => $value): ?>
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="mobile-meta">Variable</div>
+                <div class="fw-semibold"><code><?= e($token) ?></code></div>
+                <div class="mobile-meta mt-3">Value</div>
+                <div class="small text-break"><?= e((string) $value) ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
+        <ul class="small mb-0 desktop-table-only">
+          <?php foreach ($preview['variables'] as $token => $value): ?>
+            <li><code><?= e($token) ?></code>: <?= e((string) $value) ?></li>
+          <?php endforeach; ?>
+        </ul>
         <?php if ($preview['missing_variables']): ?>
           <div class="alert alert-warning small mt-3 mb-0">Unresolved variables: <?= e(implode(', ', $preview['missing_variables'])) ?></div>
         <?php endif; ?>
@@ -113,9 +128,9 @@ render_header('Template Preview');
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5 mb-3">Desktop Preview</h2>
-        <div class="email-preview-frame">
+        <div class="email-preview-frame preview-scroll-frame">
           <div class="email-preview-canvas mx-auto" style="max-width:680px;">
-            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+            <iframe class="preview-iframe" srcdoc="<?= e($preview['html']) ?>"></iframe>
           </div>
         </div>
       </div>
@@ -123,9 +138,9 @@ render_header('Template Preview');
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5 mb-3">Mobile Preview</h2>
-        <div class="email-preview-frame">
+        <div class="email-preview-frame preview-scroll-frame">
           <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
-            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+            <iframe class="preview-iframe" srcdoc="<?= e($preview['html']) ?>"></iframe>
           </div>
         </div>
       </div>

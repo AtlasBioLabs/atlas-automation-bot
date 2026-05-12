@@ -59,6 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_header('Create Campaign Queue');
 ?>
 <?php if ($errors): ?><div class="alert alert-danger"><?= e(implode(' ', $errors)) ?></div><?php endif; ?>
+<style>
+  .queue-preview-frame {
+    background: linear-gradient(180deg, #f7fafd 0%, #eef4fa 100%);
+    border: 1px solid #dbe6f1;
+    border-radius: 18px;
+    padding: 16px;
+  }
+  @media (max-width: 767.98px) {
+    .queue-preview-frame { padding: 12px; }
+    .preview-iframe { min-height: 620px; }
+  }
+</style>
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <form method="post" class="row g-3">
@@ -92,7 +104,12 @@ render_header('Create Campaign Queue');
       <?php foreach ((array) $input['selected_lead_ids'] as $leadId): ?><input type="hidden" name="selected_lead_ids[]" value="<?= e($leadId) ?>"><?php endforeach; ?>
       <?php foreach ($input['filters'] as $key => $value): ?><?php if ($key !== 'segment_id'): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e(is_array($value) ? json_encode($value) : $value) ?>"><?php endif; ?><?php endforeach; ?>
 
-      <div class="col-12"><button class="btn btn-primary" type="submit">Preview Queue</button> <a class="btn btn-outline-secondary" href="/leads/index.php">Back to leads</a></div>
+      <div class="col-12">
+        <div class="d-grid d-md-flex gap-2 action-stack">
+          <button class="btn btn-primary" type="submit">Preview Queue</button>
+          <a class="btn btn-outline-secondary" href="/leads/index.php">Back to leads</a>
+        </div>
+      </div>
     </form>
   </div>
 </div>
@@ -128,8 +145,18 @@ render_header('Create Campaign Queue');
       <?php endif; ?>
       <div class="row g-3">
         <div class="col-lg-7">
-          <h3 class="h6">Rendered HTML preview</h3>
-          <iframe class="w-100 border rounded bg-white" style="min-height:560px;" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
+          <h3 class="h6">Desktop Preview</h3>
+          <div class="queue-preview-frame preview-scroll-frame mb-3">
+            <div class="mx-auto bg-white border rounded-4 overflow-hidden" style="max-width:680px;">
+              <iframe class="preview-iframe" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
+            </div>
+          </div>
+          <h3 class="h6">Mobile Preview</h3>
+          <div class="queue-preview-frame preview-scroll-frame">
+            <div class="mx-auto bg-white border rounded-4 overflow-hidden" style="width:100%;max-width:392px;">
+              <iframe class="preview-iframe" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
+            </div>
+          </div>
         </div>
         <div class="col-lg-5">
           <h3 class="h6">Plain text fallback</h3>
@@ -158,7 +185,10 @@ render_header('Create Campaign Queue');
         <input type="hidden" name="lead_id" value="<?= e($input['lead_id']) ?>">
         <?php foreach ((array) $input['selected_lead_ids'] as $leadId): ?><input type="hidden" name="selected_lead_ids[]" value="<?= e($leadId) ?>"><?php endforeach; ?>
         <?php foreach ($input['filters'] as $key => $value): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e(is_array($value) ? json_encode($value) : $value) ?>"><?php endforeach; ?>
-        <button class="btn btn-primary" type="submit"<?= $preview['eligible_count'] === 0 ? ' disabled' : '' ?>>Confirm and Queue Campaign</button>
+        <div class="d-grid d-md-flex gap-2 action-stack">
+          <button class="btn btn-primary" type="submit"<?= $preview['eligible_count'] === 0 ? ' disabled' : '' ?>>Confirm and Queue Campaign</button>
+          <a class="btn btn-outline-secondary" href="/queue/index.php">Back to queue</a>
+        </div>
       </form>
     </div>
   </div>

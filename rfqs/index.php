@@ -13,7 +13,24 @@ $rfqs = $stmt->fetchAll();
 render_header('RFQs');
 ?>
 <div class="card shadow-sm">
-  <div class="table-responsive">
+  <div class="mobile-card-list p-3">
+    <?php foreach ($rfqs as $rfq): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="mobile-meta"><?= e($rfq['source'] ?? 'website_rfq') ?></div>
+          <div class="fw-semibold mb-1"><?= e($rfq['name']) ?></div>
+          <div class="small text-muted mb-2"><?= e(format_app_datetime($rfq['created_at'], $businessId)) ?></div>
+          <div class="small text-break mb-2"><?= e($rfq['company']) ?><?php if (!empty($rfq['email'])): ?> / <?= e($rfq['email']) ?><?php endif; ?></div>
+          <div class="small mb-2"><strong>Product:</strong> <?= e($rfq['product_interest']) ?></div>
+          <div class="small mb-2"><strong>Quantity:</strong> <?= e($rfq['estimated_quantity']) ?></div>
+          <?php if (!empty($rfq['timeline'])): ?><div class="small mb-2"><strong>Timeline:</strong> <?= e($rfq['timeline']) ?></div><?php endif; ?>
+          <?php if (!empty($rfq['items_json'])): ?><div class="small text-break mb-2"><strong>Items:</strong> <?= e($rfq['items_json']) ?></div><?php endif; ?>
+          <?php if (!empty($rfq['message'])): ?><div class="small"><?= e($rfq['message']) ?></div><?php endif; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="table-responsive desktop-table-only">
     <table class="table mb-0 align-middle">
       <thead><tr><th>Date</th><th>Source</th><th>Name</th><th>Company</th><th>Email</th><th>Product</th><th>Quantity</th><th>Timeline</th><th>Items</th><th>Message</th></tr></thead>
       <tbody>

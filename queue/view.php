@@ -154,8 +154,19 @@ render_header('Queue Email Detail');
     border-radius: 14px;
     padding: 16px 18px;
   }
+  .queue-detail-card {
+    background: #fff;
+    border: 1px solid #dce6f2;
+    border-radius: 16px;
+    padding: 18px;
+  }
+  @media (max-width: 767.98px) {
+    .email-preview-frame { padding: 14px; }
+    .email-preview-canvas { border-radius: 14px; }
+    .preview-iframe { min-height: 620px; }
+  }
 </style>
-<div class="d-flex gap-2 mb-3">
+<div class="d-grid d-md-flex gap-2 mb-3 btn-group-mobile">
   <a class="btn btn-outline-secondary" href="/queue/index.php">Back to queue</a>
   <?php if (!empty($queue['campaign_id'])): ?><a class="btn btn-outline-primary" href="/campaigns/view.php?id=<?= e($queue['campaign_id']) ?>">Open campaign</a><?php endif; ?>
   <?php if ($queue['status'] === 'pending'): ?>
@@ -176,24 +187,29 @@ render_header('Queue Email Detail');
   <div class="col-lg-4">
     <div class="card shadow-sm h-100">
       <div class="card-body">
+        <div class="queue-detail-card mb-3">
+          <div class="small text-muted mb-1">Queue status</div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <?= badge_status((string) $queue['status']) ?>
+            <span class="small text-muted">Scheduled <?= e(format_app_datetime($queue['scheduled_at'], $businessId)) ?></span>
+          </div>
+        </div>
         <h2 class="h5">Queue Details</h2>
-        <dl class="row mb-0 small">
-          <dt class="col-5">Queue ID</dt><dd class="col-7"><?= e($queue['id']) ?></dd>
-          <dt class="col-5">Business</dt><dd class="col-7"><?= e($queue['brand_name']) ?> (#<?= e($businessId) ?>)</dd>
-          <dt class="col-5">Campaign</dt><dd class="col-7"><?= e($queue['campaign_title'] ?: ($queue['campaign_name'] ?: 'Direct queue')) ?></dd>
-          <dt class="col-5">Lead</dt><dd class="col-7"><?= e(LeadService::displayName($queue)) ?></dd>
-          <dt class="col-5">Company</dt><dd class="col-7"><?= e($queue['company_name'] ?: 'Deleted lead') ?></dd>
-          <dt class="col-5">Email</dt><dd class="col-7"><?= e($queue['email'] ?: 'Deleted lead') ?></dd>
-          <dt class="col-5">Lead status</dt><dd class="col-7"><?= e($queue['lead_status'] ?: 'Deleted lead') ?></dd>
-          <dt class="col-5">Template</dt><dd class="col-7"><?= e($queue['template_name'] ?: 'Missing template') ?></dd>
-          <dt class="col-5">Queue status</dt><dd class="col-7"><?= badge_status((string) $queue['status']) ?></dd>
-          <dt class="col-5">Scheduled</dt><dd class="col-7"><?= e(format_app_datetime($queue['scheduled_at'], $businessId)) ?></dd>
-          <dt class="col-5">Sent</dt><dd class="col-7"><?= e(format_app_datetime($queue['sent_at'], $businessId)) ?></dd>
-          <dt class="col-5">Provider ref</dt><dd class="col-7"><?= e((string) ($latestLog['provider_reference'] ?? '')) ?></dd>
-          <dt class="col-5">Error</dt><dd class="col-7"><?= e((string) ($queue['error_message'] ?: ($latestLog['error_message'] ?? ''))) ?></dd>
-          <dt class="col-5">Created</dt><dd class="col-7"><?= e(format_app_datetime($queue['created_at'], $businessId)) ?></dd>
-          <dt class="col-5">Updated</dt><dd class="col-7"><?= e(format_app_datetime($queue['updated_at'], $businessId)) ?></dd>
-          <dt class="col-5">Unsubscribe</dt><dd class="col-7 small text-break"><?= e((string) $render['unsubscribe_link']) ?></dd>
+        <dl class="detail-list mb-0 small">
+          <dt>Queue ID</dt><dd><?= e($queue['id']) ?></dd>
+          <dt>Business</dt><dd><?= e($queue['brand_name']) ?> (#<?= e($businessId) ?>)</dd>
+          <dt>Campaign</dt><dd><?= e($queue['campaign_title'] ?: ($queue['campaign_name'] ?: 'Direct queue')) ?></dd>
+          <dt>Lead</dt><dd><?= e(LeadService::displayName($queue)) ?></dd>
+          <dt>Company</dt><dd><?= e($queue['company_name'] ?: 'Deleted lead') ?></dd>
+          <dt>Email</dt><dd><?= e($queue['email'] ?: 'Deleted lead') ?></dd>
+          <dt>Lead status</dt><dd><?= e($queue['lead_status'] ?: 'Deleted lead') ?></dd>
+          <dt>Template</dt><dd><?= e($queue['template_name'] ?: 'Missing template') ?></dd>
+          <dt>Sent</dt><dd><?= e(format_app_datetime($queue['sent_at'], $businessId)) ?></dd>
+          <dt>Provider ref</dt><dd><?= e((string) ($latestLog['provider_reference'] ?? '')) ?></dd>
+          <dt>Error</dt><dd><?= e((string) ($queue['error_message'] ?: ($latestLog['error_message'] ?? ''))) ?></dd>
+          <dt>Created</dt><dd><?= e(format_app_datetime($queue['created_at'], $businessId)) ?></dd>
+          <dt>Updated</dt><dd><?= e(format_app_datetime($queue['updated_at'], $businessId)) ?></dd>
+          <dt>Unsubscribe</dt><dd class="small text-break"><?= e((string) $render['unsubscribe_link']) ?></dd>
         </dl>
       </div>
     </div>
@@ -213,15 +229,15 @@ render_header('Queue Email Detail');
           </div>
         <?php endif; ?>
         <h3 class="h6 mb-3">Desktop Preview</h3>
-        <div class="email-preview-frame mb-4">
+        <div class="email-preview-frame mb-4 preview-scroll-frame">
           <div class="email-preview-canvas mx-auto" style="max-width:680px;">
-            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($render['html']) ?>"></iframe>
+            <iframe class="preview-iframe" srcdoc="<?= e($render['html']) ?>"></iframe>
           </div>
         </div>
         <h3 class="h6 mb-3">Mobile Preview</h3>
-        <div class="email-preview-frame">
+        <div class="email-preview-frame preview-scroll-frame">
           <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
-            <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e($render['html']) ?>"></iframe>
+            <iframe class="preview-iframe" srcdoc="<?= e($render['html']) ?>"></iframe>
           </div>
         </div>
       </div>
@@ -235,7 +251,19 @@ render_header('Queue Email Detail');
     <div class="card shadow-sm">
       <div class="card-body">
         <h2 class="h5">Rendered Variables</h2>
-        <div class="table-responsive">
+        <div class="mobile-card-list">
+          <?php foreach ($render['variables'] as $token => $value): ?>
+            <div class="card shadow-sm">
+              <div class="card-body">
+                <div class="mobile-meta">Variable</div>
+                <div class="fw-semibold"><code><?= e((string) $token) ?></code></div>
+                <div class="mobile-meta mt-3">Value</div>
+                <div class="small text-break"><?= e((string) $value) ?></div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <div class="table-responsive desktop-table-only">
           <table class="table table-sm mb-0">
             <thead><tr><th>Variable</th><th>Value</th></tr></thead>
             <tbody>

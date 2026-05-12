@@ -124,8 +124,12 @@ render_header('Campaign Detail');
     border-radius: 14px;
     padding: 16px 18px;
   }
+  @media (max-width: 767.98px) {
+    .email-preview-frame { padding: 14px; }
+    .preview-iframe { min-height: 620px; }
+  }
 </style>
-<div class="d-flex gap-2 mb-3">
+<div class="d-grid d-md-flex gap-2 mb-3 btn-group-mobile">
   <a class="btn btn-outline-secondary" href="/campaigns/index.php">Back to campaigns</a>
   <a class="btn btn-outline-primary" href="/queue/index.php?campaign_name=<?= urlencode((string) $campaign['name']) ?>">Open queue filter</a>
 </div>
@@ -171,11 +175,13 @@ render_header('Campaign Detail');
   </div>
 </div>
 
-<ul class="nav nav-tabs mb-3">
+<div class="nav-tabs-wrap mb-3">
+<ul class="nav nav-tabs">
   <?php foreach ($tabs as $key => $label): ?>
     <li class="nav-item"><a class="nav-link<?= $tab === $key ? ' active' : '' ?>" href="/campaigns/view.php?id=<?= e($id) ?>&tab=<?= e($key) ?>"><?= e($label) ?></a></li>
   <?php endforeach; ?>
 </ul>
+</div>
 
 <?php if ($tab === 'overview'): ?>
   <div class="card shadow-sm">
@@ -195,7 +201,30 @@ render_header('Campaign Detail');
     </div>
   </div>
 <?php elseif ($tab === 'recipients'): ?>
-  <div class="card shadow-sm"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <div class="mobile-card-list">
+    <?php foreach ($recipientRows as $row): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <div class="fw-semibold"><?= e(LeadService::displayName($row)) ?></div>
+              <div class="text-muted small"><?= e($row['company_name'] ?: 'Deleted lead') ?></div>
+              <div class="small text-break"><?= e($row['email'] ?: 'Deleted lead') ?></div>
+            </div>
+            <?= badge_status((string) $row['status']) ?>
+          </div>
+          <div class="row g-2 mt-2 small">
+            <div class="col-6"><div class="mobile-meta">Scheduled</div><div><?= e(format_app_datetime($row['scheduled_at'], $businessId)) ?></div></div>
+            <div class="col-6"><div class="mobile-meta">Sent</div><div><?= e(format_app_datetime($row['sent_at'], $businessId)) ?></div></div>
+            <div class="col-12"><div class="mobile-meta">Provider ref</div><div class="text-break"><?= e((string) ($row['provider_reference'] ?? '')) ?></div></div>
+            <?php if ((string) $row['error_message'] !== ''): ?><div class="col-12"><div class="mobile-meta">Error</div><div class="small text-danger"><?= e((string) $row['error_message']) ?></div></div><?php endif; ?>
+          </div>
+          <div class="mobile-actions mt-3"><a class="btn btn-outline-primary" href="/queue/view.php?id=<?= e($row['id']) ?>">Queue detail</a></div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="card shadow-sm"><div class="table-responsive desktop-table-only"><table class="table mb-0 align-middle">
     <thead><tr><th>Lead</th><th>Company</th><th>Email</th><th>Status</th><th>Scheduled</th><th>Sent</th><th>Provider ref</th><th>Error</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($recipientRows as $row): ?>
@@ -214,7 +243,20 @@ render_header('Campaign Detail');
     </tbody>
   </table></div></div>
 <?php elseif ($tab === 'skipped'): ?>
-  <div class="card shadow-sm"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <div class="mobile-card-list">
+    <?php foreach ($skippedRows as $row): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-semibold"><?= e($row['lead_contact_name'] ?: 'Deleted lead') ?></div>
+          <div class="text-muted small"><?= e($row['lead_company_name'] ?: 'Deleted lead') ?></div>
+          <div class="small text-break"><?= e($row['lead_email'] ?: 'Deleted lead') ?></div>
+          <div class="mobile-meta mt-3">Skipped reason</div>
+          <div><?= e(skip_reason_label((string) $row['reason'])) ?></div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="card shadow-sm"><div class="table-responsive desktop-table-only"><table class="table mb-0 align-middle">
     <thead><tr><th>Lead</th><th>Company</th><th>Email</th><th>Skipped reason</th></tr></thead>
     <tbody>
     <?php foreach ($skippedRows as $row): ?>
@@ -228,7 +270,24 @@ render_header('Campaign Detail');
     </tbody>
   </table></div></div>
 <?php elseif ($tab === 'failed'): ?>
-  <div class="card shadow-sm"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <div class="mobile-card-list">
+    <?php foreach ($recipientRows as $row): ?>
+      <?php if ($row['status'] !== 'failed') {
+          continue;
+      } ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="fw-semibold"><?= e(LeadService::displayName($row)) ?></div>
+          <div class="text-muted small"><?= e($row['company_name'] ?: 'Deleted lead') ?></div>
+          <div class="small text-break"><?= e($row['email'] ?: 'Deleted lead') ?></div>
+          <div class="mobile-meta mt-3">Safe error</div>
+          <div class="small text-danger"><?= e((string) $row['error_message']) ?></div>
+          <div class="mobile-actions mt-3"><a class="btn btn-outline-primary" href="/queue/view.php?id=<?= e($row['id']) ?>">Retry from queue</a></div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="card shadow-sm"><div class="table-responsive desktop-table-only"><table class="table mb-0 align-middle">
     <thead><tr><th>Lead</th><th>Company</th><th>Email</th><th>Error</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($recipientRows as $row): ?>
@@ -259,15 +318,15 @@ render_header('Campaign Detail');
       </div>
     <?php endif; ?>
     <h3 class="h6 mb-3">Desktop Preview</h3>
-    <div class="email-preview-frame mb-4">
+    <div class="email-preview-frame mb-4 preview-scroll-frame">
       <div class="email-preview-canvas mx-auto" style="max-width:680px;">
-        <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+        <iframe class="preview-iframe" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
       </div>
     </div>
     <h3 class="h6 mb-3">Mobile Preview</h3>
-    <div class="email-preview-frame">
+    <div class="email-preview-frame preview-scroll-frame">
       <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
-        <iframe class="d-block w-100 bg-white" style="min-height:760px;border:0;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+        <iframe class="preview-iframe" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
       </div>
     </div>
   </div></div>
@@ -276,7 +335,28 @@ render_header('Campaign Detail');
     <pre class="bg-light border rounded p-3 mb-0" style="white-space:pre-wrap"><?= e((string) $preview['text']) ?></pre>
   </div></div>
 <?php else: ?>
-  <div class="card shadow-sm"><div class="table-responsive"><table class="table mb-0 align-middle">
+  <div class="mobile-card-list">
+    <?php foreach ($recipientRows as $row): ?>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between gap-3">
+            <div>
+              <div class="mobile-meta">Time</div>
+              <div class="fw-semibold"><?= e(format_app_datetime($row['updated_at'], $businessId)) ?></div>
+            </div>
+            <?= badge_status((string) $row['status']) ?>
+          </div>
+          <div class="row g-2 mt-2 small">
+            <div class="col-6"><div class="mobile-meta">Queue ID</div><div><?= e($row['id']) ?></div></div>
+            <div class="col-6"><div class="mobile-meta">Recipient</div><div class="text-break"><?= e($row['email'] ?: 'Deleted lead') ?></div></div>
+            <div class="col-12"><div class="mobile-meta">Provider ref</div><div class="text-break"><?= e((string) ($row['provider_reference'] ?? '')) ?></div></div>
+            <?php if ((string) $row['error_message'] !== ''): ?><div class="col-12"><div class="mobile-meta">Error</div><div class="small text-danger"><?= e((string) $row['error_message']) ?></div></div><?php endif; ?>
+          </div>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <div class="card shadow-sm"><div class="table-responsive desktop-table-only"><table class="table mb-0 align-middle">
     <thead><tr><th>Time</th><th>Queue ID</th><th>Status</th><th>Recipient</th><th>Provider ref</th><th>Error</th></tr></thead>
     <tbody>
     <?php foreach ($recipientRows as $row): ?>
