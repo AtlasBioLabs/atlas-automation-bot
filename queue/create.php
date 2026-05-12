@@ -129,7 +129,7 @@ render_header('Create Campaign Queue');
       <div class="row g-3">
         <div class="col-lg-7">
           <h3 class="h6">Rendered HTML preview</h3>
-          <iframe class="w-100 border rounded bg-white" style="min-height:360px;" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
+          <iframe class="w-100 border rounded bg-white" style="min-height:560px;" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
         </div>
         <div class="col-lg-5">
           <h3 class="h6">Plain text fallback</h3>

@@ -92,13 +92,13 @@ render_header('Template Preview');
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5">Desktop Preview</h2>
-        <iframe class="w-100 border rounded bg-white" style="min-height:420px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+        <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
       </div>
     </div>
     <div class="card shadow-sm mb-4">
       <div class="card-body">
         <h2 class="h5">Mobile Preview</h2>
-        <iframe class="d-block mx-auto border rounded bg-white" style="width:100%;max-width:380px;min-height:420px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
+        <iframe class="d-block mx-auto border rounded bg-white" style="width:100%;max-width:390px;min-height:640px;" srcdoc="<?= e($preview['html']) ?>"></iframe>
       </div>
     </div>
     <div class="card shadow-sm">

@@ -230,7 +230,7 @@ render_header('Campaign Detail');
     <pre class="bg-light border rounded p-3"><?= e((string) $preview['subject']) ?></pre>
     <?php if (!empty($preview['preheader'])): ?><h3 class="h6">Preheader</h3><pre class="bg-light border rounded p-3"><?= e((string) $preview['preheader']) ?></pre><?php endif; ?>
     <h3 class="h6">HTML Preview</h3>
-    <iframe class="w-100 border rounded bg-white" style="min-height:420px;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
+    <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
   </div></div>
   <div class="card shadow-sm"><div class="card-body">
     <h2 class="h5">Plain Text Fallback</h2>

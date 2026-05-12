@@ -187,7 +187,7 @@ render_header('Queue Email Detail');
           <pre class="bg-light border rounded p-3"><?= e($render['preheader']) ?></pre>
         <?php endif; ?>
         <h3 class="h6">HTML Email Preview</h3>
-        <iframe class="w-100 border rounded bg-white" style="min-height:420px;" srcdoc="<?= e($render['html']) ?>"></iframe>
+        <iframe class="w-100 border rounded bg-white" style="min-height:640px;" srcdoc="<?= e($render['html']) ?>"></iframe>
       </div>
     </div>
     <div class="card shadow-sm mb-4">
