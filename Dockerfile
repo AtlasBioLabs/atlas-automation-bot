@@ -23,9 +23,11 @@ RUN composer install \
     --prefer-dist \
     --no-interaction \
     --no-progress \
-    --optimize-autoloader
+    --no-autoloader
 
 COPY . .
+
+RUN composer dump-autoload --optimize --no-dev
 
 RUN mkdir -p storage/mail storage/logs \
     && php -r '$required = ["pdo", "pdo_mysql", "mbstring", "openssl", "curl", "json", "fileinfo", "session"]; $missing = array_filter($required, fn ($extension) => !extension_loaded($extension)); if ($missing) { fwrite(STDERR, "Missing PHP extensions: " . implode(", ", $missing) . PHP_EOL); exit(1); }'
