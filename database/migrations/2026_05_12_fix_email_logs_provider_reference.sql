@@ -10,7 +10,7 @@ SET @has_provider_reference := (
 SET @provider_reference_sql := IF(
     @has_provider_reference = 0,
     'ALTER TABLE email_logs ADD COLUMN provider_reference VARCHAR(255) NULL AFTER status',
-    'SELECT 1'
+    'SET @noop := 1'
 );
 
 PREPARE provider_reference_stmt FROM @provider_reference_sql;

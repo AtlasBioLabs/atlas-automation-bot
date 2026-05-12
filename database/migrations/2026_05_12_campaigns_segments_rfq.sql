@@ -40,21 +40,21 @@ SET @schema_name := DATABASE();
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND COLUMN_NAME = 'source') = 0,
   'ALTER TABLE rfqs ADD COLUMN source VARCHAR(120) NOT NULL DEFAULT ''website_rfq'' AFTER business_profile_id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND INDEX_NAME = 'rfqs_source_index') = 0,
   'ALTER TABLE rfqs ADD KEY rfqs_source_index (business_profile_id, source, created_at)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND INDEX_NAME = 'email_queue_campaign_status_index') = 0,
   'ALTER TABLE email_queue ADD KEY email_queue_campaign_status_index (business_profile_id, campaign_id, status)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 

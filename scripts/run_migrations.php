@@ -24,6 +24,7 @@ sort($files, SORT_NATURAL | SORT_FLAG_CASE);
 
 $appliedStmt = $pdo->query('SELECT filename FROM schema_migrations ORDER BY filename');
 $applied = array_flip(array_map('strval', $appliedStmt->fetchAll(PDO::FETCH_COLUMN)));
+$appliedStmt->closeCursor();
 
 $appliedNow = [];
 $skipped = [];
@@ -41,45 +42,34 @@ foreach ($files as $file) {
     }
 
     $statements = split_sql_statements($sql);
-    $transactionStarted = false;
     $statementCount = 0;
-    try {
-        $pdo->beginTransaction();
-        $transactionStarted = true;
-    } catch (Throwable $transactionError) {
-        echo '[failed] ' . $filename . ' - unable to start migration transaction: ' . normalize_migration_error_message($transactionError->getMessage()) . PHP_EOL;
-        exit(1);
+    foreach ($statements as $statement) {
+        $trimmed = trim($statement);
+        if ($trimmed === '') {
+            continue;
+        }
+        $statementCount++;
+        try {
+            execute_migration_statement($pdo, $trimmed);
+        } catch (Throwable $statementError) {
+            if (migration_error_is_ignorable($statementError)) {
+                echo '  [ignored] ' . normalize_migration_error_message($statementError->getMessage()) . PHP_EOL;
+                continue;
+            }
+
+            echo '[failed] ' . $filename . ' after statement ' . $statementCount . ' - ' . normalize_migration_error_message($statementError->getMessage()) . PHP_EOL;
+            exit(1);
+        }
     }
 
     try {
-        foreach ($statements as $statement) {
-            $trimmed = trim($statement);
-            if ($trimmed === '') {
-                continue;
-            }
-            $statementCount++;
-            try {
-                $pdo->exec($trimmed);
-            } catch (Throwable $statementError) {
-                if (!migration_error_is_ignorable($statementError)) {
-                    throw $statementError;
-                }
-                echo '  [ignored] ' . normalize_migration_error_message($statementError->getMessage()) . PHP_EOL;
-            }
-        }
-
         $track = $pdo->prepare('INSERT INTO schema_migrations (filename) VALUES (?)');
         $track->execute([$filename]);
-        if ($transactionStarted && $pdo->inTransaction()) {
-            $pdo->commit();
-        }
+        $track->closeCursor();
         $appliedNow[] = $filename;
         echo '[applied] ' . $filename . PHP_EOL;
-    } catch (Throwable $throwable) {
-        if ($transactionStarted && $pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        echo '[failed] ' . $filename . ' after statement ' . $statementCount . ' - ' . normalize_migration_error_message($throwable->getMessage()) . PHP_EOL;
+    } catch (Throwable $trackingError) {
+        echo '[failed] ' . $filename . ' while recording schema_migrations - ' . normalize_migration_error_message($trackingError->getMessage()) . PHP_EOL;
         exit(1);
     }
 }
@@ -173,6 +163,21 @@ function split_sql_statements(string $sql): array
     }
 
     return $statements;
+}
+
+function execute_migration_statement(PDO $pdo, string $statement): void
+{
+    $keyword = strtoupper((string) preg_replace('/^([A-Z_]+).*$/is', '$1', ltrim($statement)));
+    if (in_array($keyword, ['SELECT', 'SHOW', 'DESCRIBE', 'EXPLAIN'], true)) {
+        $stmt = $pdo->query($statement);
+        if ($stmt instanceof PDOStatement) {
+            $stmt->fetchAll();
+            $stmt->closeCursor();
+        }
+        return;
+    }
+
+    $pdo->exec($statement);
 }
 
 function migration_error_is_ignorable(Throwable $throwable): bool

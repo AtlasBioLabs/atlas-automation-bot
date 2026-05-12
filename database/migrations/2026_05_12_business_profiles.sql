@@ -60,42 +60,42 @@ SET @schema_name := DATABASE();
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE leads ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE email_templates ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE email_queue ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_logs' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE email_logs ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE rfqs ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND COLUMN_NAME = 'business_profile_id') = 0,
   'ALTER TABLE settings ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -126,77 +126,77 @@ ALTER TABLE settings MODIFY business_profile_id INT UNSIGNED NOT NULL;
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_email_unique') > 0,
   'ALTER TABLE leads DROP INDEX leads_email_unique',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_name_unique') > 0,
   'ALTER TABLE email_templates DROP INDEX email_templates_name_unique',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND INDEX_NAME = 'settings_key_unique') > 0,
   'ALTER TABLE settings DROP INDEX settings_key_unique',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_business_email_unique') = 0,
   'ALTER TABLE leads ADD UNIQUE KEY leads_business_email_unique (business_profile_id, email)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_business_name_unique') = 0,
   'ALTER TABLE email_templates ADD UNIQUE KEY email_templates_business_name_unique (business_profile_id, name)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND INDEX_NAME = 'settings_business_key_unique') = 0,
   'ALTER TABLE settings ADD UNIQUE KEY settings_business_key_unique (business_profile_id, setting_key)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_business_status_index') = 0,
   'ALTER TABLE leads ADD KEY leads_business_status_index (business_profile_id, status)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_business_stage_index') = 0,
   'ALTER TABLE email_templates ADD KEY email_templates_business_stage_index (business_profile_id, followup_stage)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND INDEX_NAME = 'email_queue_business_status_index') = 0,
   'ALTER TABLE email_queue ADD KEY email_queue_business_status_index (business_profile_id, status, scheduled_at)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_logs' AND INDEX_NAME = 'email_logs_business_status_index') = 0,
   'ALTER TABLE email_logs ADD KEY email_logs_business_status_index (business_profile_id, status, created_at)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND INDEX_NAME = 'rfqs_business_created_index') = 0,
   'ALTER TABLE rfqs ADD KEY rfqs_business_created_index (business_profile_id, created_at)',
-  'SELECT 1'
+  'SET @noop := 1'
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
