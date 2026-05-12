@@ -87,6 +87,8 @@ php scripts/run_migrations.php
 
 This script creates a `schema_migrations` table if needed, applies pending `.sql` files from `database/migrations`, does not drop existing data, skips migrations that were already recorded, and tolerates duplicate-column / duplicate-index errors for partially applied safe migrations.
 
+Railway MySQL does not reliably support `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, `ADD KEY IF NOT EXISTS`, or `ADD INDEX IF NOT EXISTS`. The additive migrations in this repo use `INFORMATION_SCHEMA` checks plus dynamic SQL instead of those unsupported `ALTER` forms.
+
 Security notes:
 
 - `.railwayignore` excludes `.env`, `storage/mail/*`, `database/backups/*`, `node_modules`, and `vendor`.

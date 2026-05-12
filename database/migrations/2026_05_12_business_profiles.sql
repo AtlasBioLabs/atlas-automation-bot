@@ -55,12 +55,49 @@ Business address placeholder',
   NOW()
 ) ON DUPLICATE KEY UPDATE updated_at = NOW();
 
-ALTER TABLE leads ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
-ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
-ALTER TABLE email_queue ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
-ALTER TABLE email_logs ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
-ALTER TABLE rfqs ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
-ALTER TABLE settings ADD COLUMN IF NOT EXISTS business_profile_id INT UNSIGNED NULL AFTER id;
+SET @schema_name := DATABASE();
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE leads ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE email_templates ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE email_queue ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_logs' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE email_logs ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE rfqs ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND COLUMN_NAME = 'business_profile_id') = 0,
+  'ALTER TABLE settings ADD COLUMN business_profile_id INT UNSIGNED NULL AFTER id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 UPDATE leads SET business_profile_id = 1 WHERE business_profile_id IS NULL;
 UPDATE email_templates SET business_profile_id = 1 WHERE business_profile_id IS NULL;
@@ -86,19 +123,82 @@ ALTER TABLE email_logs MODIFY business_profile_id INT UNSIGNED NOT NULL;
 ALTER TABLE rfqs MODIFY business_profile_id INT UNSIGNED NOT NULL;
 ALTER TABLE settings MODIFY business_profile_id INT UNSIGNED NOT NULL;
 
-ALTER TABLE leads DROP INDEX IF EXISTS leads_email_unique;
-ALTER TABLE email_templates DROP INDEX IF EXISTS email_templates_name_unique;
-ALTER TABLE settings DROP INDEX IF EXISTS settings_key_unique;
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_email_unique') > 0,
+  'ALTER TABLE leads DROP INDEX leads_email_unique',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-ALTER TABLE leads ADD UNIQUE KEY IF NOT EXISTS leads_business_email_unique (business_profile_id, email);
-ALTER TABLE email_templates ADD UNIQUE KEY IF NOT EXISTS email_templates_business_name_unique (business_profile_id, name);
-ALTER TABLE settings ADD UNIQUE KEY IF NOT EXISTS settings_business_key_unique (business_profile_id, setting_key);
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_name_unique') > 0,
+  'ALTER TABLE email_templates DROP INDEX email_templates_name_unique',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-ALTER TABLE leads ADD KEY IF NOT EXISTS leads_business_status_index (business_profile_id, status);
-ALTER TABLE email_templates ADD KEY IF NOT EXISTS email_templates_business_stage_index (business_profile_id, followup_stage);
-ALTER TABLE email_queue ADD KEY IF NOT EXISTS email_queue_business_status_index (business_profile_id, status, scheduled_at);
-ALTER TABLE email_logs ADD KEY IF NOT EXISTS email_logs_business_status_index (business_profile_id, status, created_at);
-ALTER TABLE rfqs ADD KEY IF NOT EXISTS rfqs_business_created_index (business_profile_id, created_at);
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND INDEX_NAME = 'settings_key_unique') > 0,
+  'ALTER TABLE settings DROP INDEX settings_key_unique',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_business_email_unique') = 0,
+  'ALTER TABLE leads ADD UNIQUE KEY leads_business_email_unique (business_profile_id, email)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_business_name_unique') = 0,
+  'ALTER TABLE email_templates ADD UNIQUE KEY email_templates_business_name_unique (business_profile_id, name)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'settings' AND INDEX_NAME = 'settings_business_key_unique') = 0,
+  'ALTER TABLE settings ADD UNIQUE KEY settings_business_key_unique (business_profile_id, setting_key)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'leads' AND INDEX_NAME = 'leads_business_status_index') = 0,
+  'ALTER TABLE leads ADD KEY leads_business_status_index (business_profile_id, status)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_templates' AND INDEX_NAME = 'email_templates_business_stage_index') = 0,
+  'ALTER TABLE email_templates ADD KEY email_templates_business_stage_index (business_profile_id, followup_stage)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND INDEX_NAME = 'email_queue_business_status_index') = 0,
+  'ALTER TABLE email_queue ADD KEY email_queue_business_status_index (business_profile_id, status, scheduled_at)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_logs' AND INDEX_NAME = 'email_logs_business_status_index') = 0,
+  'ALTER TABLE email_logs ADD KEY email_logs_business_status_index (business_profile_id, status, created_at)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'rfqs' AND INDEX_NAME = 'rfqs_business_created_index') = 0,
+  'ALTER TABLE rfqs ADD KEY rfqs_business_created_index (business_profile_id, created_at)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 UPDATE email_templates
 SET body = REPLACE(body, '{{atlas_signature}}', '{{default_signature}}')

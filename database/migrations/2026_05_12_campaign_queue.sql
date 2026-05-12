@@ -17,6 +17,25 @@ CREATE TABLE IF NOT EXISTS email_campaigns (
   CONSTRAINT email_campaigns_template_fk FOREIGN KEY (template_id) REFERENCES email_templates (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-ALTER TABLE email_queue ADD COLUMN IF NOT EXISTS campaign_id INT UNSIGNED NULL AFTER business_profile_id;
-ALTER TABLE email_queue ADD COLUMN IF NOT EXISTS campaign_name VARCHAR(190) NULL AFTER campaign_id;
-ALTER TABLE email_queue ADD KEY IF NOT EXISTS email_queue_campaign_index (campaign_id);
+SET @schema_name := DATABASE();
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND COLUMN_NAME = 'campaign_id') = 0,
+  'ALTER TABLE email_queue ADD COLUMN campaign_id INT UNSIGNED NULL AFTER business_profile_id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND COLUMN_NAME = 'campaign_name') = 0,
+  'ALTER TABLE email_queue ADD COLUMN campaign_name VARCHAR(190) NULL AFTER campaign_id',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'email_queue' AND INDEX_NAME = 'email_queue_campaign_index') = 0,
+  'ALTER TABLE email_queue ADD KEY email_queue_campaign_index (campaign_id)',
+  'SELECT 1'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
