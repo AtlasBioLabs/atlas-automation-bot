@@ -589,7 +589,7 @@ final class Mailer
         $unsubscribe = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
         $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? ''));
         $supportEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? ''));
-        $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Professional business communication for qualified sourcing conversations.'));
+        $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Premium sourcing communication for qualified B2B buyers.'));
 
         $logoMarkup = $logo !== ''
             ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:210px;width:100%;height:auto;border:0;">'
@@ -603,9 +603,9 @@ final class Mailer
             : '';
         $headerPill = '<span style="display:inline-block;background:#113158;border:1px solid rgba(255,255,255,0.12);color:#D6E5FF;padding:8px 13px;border-radius:999px;font-size:12px;line-height:12px;font-weight:700;letter-spacing:0.2px;">' . e($brand) . '</span>';
         $trustRows = [
-            ['title' => 'MOQ flexibility', 'copy' => 'Structured conversations around quantity planning and commercial fit.'],
-            ['title' => 'Documentation support', 'copy' => 'Business-ready follow-up for specification and review workflows.'],
-            ['title' => 'Batch transparency', 'copy' => 'Clear sourcing communication with practical next steps.'],
+            ['title' => 'MOQ flexibility support', 'copy' => 'Practical quantity planning for early-stage and scaling programs.'],
+            ['title' => 'Documentation support', 'copy' => 'Clear, review-ready follow-up for qualified sourcing discussions.'],
+            ['title' => 'Sourcing coordination', 'copy' => 'Professional B2B communication from RFQ through next-step alignment.'],
         ];
         $trustMarkup = '';
         foreach ($trustRows as $row) {
@@ -655,10 +655,11 @@ final class Mailer
             . '<tr><td style="padding:0 32px 30px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F7FAFD;border:1px solid #DCE6F2;border-radius:18px;"><tr>'
             . '<td style="padding:18px 20px;">'
-            . '<div style="font-size:13px;line-height:18px;font-weight:700;color:#0A1A2F;text-transform:uppercase;letter-spacing:0.2px;">Direct response path</div>'
+            . '<div style="font-size:13px;line-height:18px;font-weight:700;color:#0A1A2F;text-transform:uppercase;letter-spacing:0.2px;">Next Step</div>'
             . '<div style="margin-top:6px;font-size:14px;line-height:22px;color:#526173;">Reply directly to this email'
             . ($supportEmail !== '' ? ' at <a href="mailto:' . e($supportEmail) . '" style="color:' . e($accent) . ';text-decoration:none;">' . e($supportEmail) . '</a>' : '')
-            . ($secondaryCtaMarkup !== '' ? ' or ' . $secondaryCtaMarkup . '.' : '.') . '</div>'
+            . ($secondaryCtaMarkup !== '' ? ' or ' . $secondaryCtaMarkup . '.' : '.')
+            . ' We will keep the conversation concise, commercial, and requirement-focused.</div>'
             . '</td></tr></table>'
             . '</td></tr>'
             . '<tr><td style="padding:0 32px 28px;">'
