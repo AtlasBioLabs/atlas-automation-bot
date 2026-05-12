@@ -53,8 +53,12 @@ final class Mailer
             return self::logMail($toEmail, $toName, $subject, $body, $business);
         }
 
+        if ($provider === 'brevo_api') {
+            return self::sendBrevoApi($toEmail, $toName, $subject, $body, $business);
+        }
+
         if ($provider !== 'smtp') {
-            return ['sent' => false, 'error' => 'Unsupported MAIL_PROVIDER. Use log or smtp for this MVP.'];
+            return ['sent' => false, 'error' => 'Unsupported MAIL_PROVIDER. Use log, smtp, or brevo_api.'];
         }
 
         if (!class_exists(PHPMailer::class)) {
@@ -89,9 +93,9 @@ final class Mailer
             $mail->AltBody = $body;
             $mail->send();
 
-            return ['sent' => true, 'error' => null];
+            return ['sent' => true, 'error' => null, 'reference' => null];
         } catch (MailException $exception) {
-            return ['sent' => false, 'error' => $exception->getMessage()];
+            return ['sent' => false, 'error' => $exception->getMessage(), 'reference' => null];
         }
     }
 
@@ -127,6 +131,114 @@ final class Mailer
         $message .= "Subject: {$subject}\n\n{$body}\n";
         file_put_contents($file, $message);
 
-        return ['sent' => true, 'error' => null];
+        return ['sent' => true, 'error' => null, 'reference' => basename($file)];
+    }
+
+    private static function sendBrevoApi(string $toEmail, string $toName, string $subject, string $body, array $business): array
+    {
+        $apiKey = trim((string) app_config('mail_api_key', ''));
+        if ($apiKey === '') {
+            return ['sent' => false, 'error' => 'Brevo API key missing from environment variable MAIL_API_KEY', 'reference' => null];
+        }
+
+        if (!function_exists('curl_init')) {
+            return ['sent' => false, 'error' => 'cURL is required for Brevo API sending.', 'reference' => null];
+        }
+
+        $payload = [
+            'sender' => [
+                'name' => (string) $business['sender_name'],
+                'email' => (string) $business['sender_email'],
+            ],
+            'to' => [[
+                'email' => $toEmail,
+                'name' => $toName !== '' ? $toName : $toEmail,
+            ]],
+            'subject' => $subject,
+            'htmlContent' => self::toHtmlBody($body),
+            'textContent' => self::toPlainText($body),
+        ];
+
+        $replyTo = trim((string) ($business['reply_to_email'] ?: Settings::option('MAIL_REPLY_TO', '', (int) $business['id'])));
+        if ($replyTo !== '') {
+            $payload['replyTo'] = ['email' => $replyTo];
+        }
+
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'accept: application/json',
+                'api-key: ' . $apiKey,
+                'content-type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ]);
+
+        $responseBody = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        if ($responseBody === false) {
+            return ['sent' => false, 'error' => 'Brevo API request failed: ' . $curlError, 'reference' => null];
+        }
+
+        $decoded = json_decode((string) $responseBody, true);
+        $reference = self::extractBrevoReference($decoded);
+        if ($status >= 200 && $status < 300) {
+            return ['sent' => true, 'error' => null, 'reference' => $reference];
+        }
+
+        $safeMessage = self::extractBrevoErrorMessage($decoded);
+        return [
+            'sent' => false,
+            'error' => trim("Brevo API HTTP {$status}" . ($safeMessage !== '' ? ': ' . $safeMessage : '')),
+            'reference' => $reference,
+        ];
+    }
+
+    private static function toHtmlBody(string $body): string
+    {
+        return nl2br(htmlspecialchars(self::toPlainText($body), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+    }
+
+    private static function toPlainText(string $body): string
+    {
+        $text = trim(strip_tags(str_replace(["<br>", "<br/>", "<br />"], "\n", $body)));
+        return $text !== '' ? $text : trim($body);
+    }
+
+    private static function extractBrevoReference(mixed $decoded): ?string
+    {
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        foreach (['messageId', 'message_id', 'requestId'] as $key) {
+            if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
+                return (string) $decoded[$key];
+            }
+        }
+
+        return null;
+    }
+
+    private static function extractBrevoErrorMessage(mixed $decoded): string
+    {
+        if (!is_array($decoded)) {
+            return '';
+        }
+
+        foreach (['message', 'code', 'error'] as $key) {
+            if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
+                return (string) $decoded[$key];
+            }
+        }
+
+        return '';
     }
 }

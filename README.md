@@ -52,7 +52,7 @@ Deploy steps:
 4. Deploy the web service. Railway will build from the `Dockerfile`.
 5. Import `database/schema.sql` and `database/seed.sql` into the Railway MySQL database.
 6. Run `php scripts/create_admin.php` in a Railway shell or create the first admin from a secure one-off CLI session.
-7. Open `/login.php`, sign in, confirm the Atlas BioLabs profile is active, and keep `MAIL_PROVIDER=log` until you are ready to test SMTP.
+7. Open `/login.php`, sign in, confirm the Atlas BioLabs profile is active, and keep `MAIL_PROVIDER=log` until you are ready to test a real provider.
 
 The app supports both local database variables and Railway MySQL variables. Railway values are read from `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, or `MYSQL_URL`.
 
@@ -74,7 +74,7 @@ MAIL_API_KEY=
 MAIL_SMTP_PASS=
 ```
 
-Keep business-specific sender settings, `MAIL_PROVIDER`, SMTP host/user/port, daily limits, follow-up delays, signatures, and compliance footer in `/settings.php`. Keep `MAIL_PROVIDER=log` for initial Railway testing so no real emails are sent.
+Keep business-specific sender settings, `MAIL_PROVIDER`, SMTP host/user/port, daily limits, follow-up delays, signatures, and compliance footer in `/settings.php`. Keep `MAIL_PROVIDER=log` for initial Railway testing so no real emails are sent. If Railway SMTP connectivity fails, switch to `MAIL_PROVIDER=brevo_api` in `/settings.php` and set `MAIL_API_KEY` in Railway variables.
 
 Security notes:
 
@@ -116,6 +116,12 @@ Set `MAIL_PROVIDER=smtp`, sender, SMTP host, port, and SMTP user on `/settings.p
 
 `MAIL_SMTP_PASS`, `MAIL_API_KEY`, and `RFQ_API_TOKEN` stay in `.env` and are never shown in the admin UI.
 
+Brevo API mode:
+
+Set `MAIL_PROVIDER=brevo_api` on `/settings.php` and keep `MAIL_API_KEY` in `.env`.
+
+Railway Free/Hobby commonly blocks outbound SMTP connections. For Railway deployments, `brevo_api` is the recommended provider because it sends over HTTPS instead of SMTP.
+
 ## Settings
 
 Keep these in `.env`:
@@ -138,8 +144,9 @@ Control these from `/settings.php`:
 - daily send limit
 - follow-up delays
 - compliance and unsubscribe footer text
+- one-off provider test email
 
-If `MAIL_PROVIDER=smtp`, sender name, sender email, SMTP host, SMTP port, and SMTP user are required. If `MAIL_PROVIDER=log`, SMTP credentials are not required.
+If `MAIL_PROVIDER=smtp`, sender name, sender email, SMTP host, SMTP port, and SMTP user are required. If `MAIL_PROVIDER=brevo_api`, sender name and sender email are required and `MAIL_API_KEY` must exist in `.env`. If `MAIL_PROVIDER=log`, SMTP credentials are not required.
 
 ## Campaign Queues
 
@@ -170,6 +177,8 @@ php cron/send_daily_report.php --business=1
 ```
 
 Sending is Monday-Friday only. Each profile uses its own daily sending limit and compliance fields. Sending is blocked for a profile if sender name, sender email, business address, or compliance footer is missing.
+
+The queue sender continues to respect daily limits, duplicate prevention, unsubscribes, bounces, and stopped lead statuses regardless of whether the actual provider is `log`, `smtp`, or `brevo_api`.
 
 ## RFQ Forms
 

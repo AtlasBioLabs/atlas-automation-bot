@@ -7,8 +7,8 @@ final class SettingsValidator
     public static function validate(array $fields): array
     {
         $errors = [];
-        if (!in_array($fields['MAIL_PROVIDER'] ?? '', ['log', 'smtp'], true)) {
-            $errors[] = 'Mail provider must be log or smtp.';
+        if (!in_array($fields['MAIL_PROVIDER'] ?? '', ['log', 'smtp', 'brevo_api'], true)) {
+            $errors[] = 'Mail provider must be log, smtp, or brevo_api.';
         }
         foreach (['MAIL_FROM_EMAIL', 'MAIL_REPLY_TO', 'ADMIN_EMAIL'] as $emailField) {
             if (($fields[$emailField] ?? '') !== '' && !filter_var($fields[$emailField], FILTER_VALIDATE_EMAIL)) {

@@ -226,10 +226,20 @@ final class OutreachService
     private static function logEmail(int $businessProfileId, int $leadId, int $templateId, int $queueId, string $recipient, string $subject, array $result): void
     {
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO email_logs (business_profile_id, lead_id, template_id, queue_id, recipient_email, subject, status, error_message, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+            'INSERT INTO email_logs (business_profile_id, lead_id, template_id, queue_id, recipient_email, subject, status, provider_reference, error_message, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
         );
-        $stmt->execute([$businessProfileId, $leadId, $templateId, $queueId, $recipient, $subject, $result['sent'] ? 'sent' : 'failed', $result['error']]);
+        $stmt->execute([
+            $businessProfileId,
+            $leadId,
+            $templateId,
+            $queueId,
+            $recipient,
+            $subject,
+            $result['sent'] ? 'sent' : 'failed',
+            $result['reference'] ?? null,
+            $result['error'],
+        ]);
     }
 
     private static function refreshCampaignStatus(int $businessProfileId, int $campaignId): void
