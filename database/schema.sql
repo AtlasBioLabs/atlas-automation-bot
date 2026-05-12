@@ -47,7 +47,7 @@ CREATE TABLE `business_profiles` (
   `compliance_footer` text NOT NULL,
   `default_signature` text NOT NULL,
   `daily_send_limit` int(10) unsigned NOT NULL DEFAULT 30,
-  `timezone` varchar(80) NOT NULL DEFAULT 'UTC',
+  `timezone` varchar(100) NOT NULL DEFAULT 'Africa/Douala',
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),

@@ -10,22 +10,33 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $businesses = [];
+$allBusinesses = false;
 foreach ($argv as $arg) {
     if (str_starts_with($arg, '--business=')) {
         $business = BusinessProfile::find((int) substr($arg, 11));
         if ($business) {
             $businesses[] = $business;
         }
+    } elseif ($arg === '--all-businesses') {
+        $allBusinesses = true;
     }
 }
-if (!$businesses) {
+if ($allBusinesses || !$businesses) {
     $businesses = BusinessProfile::all(false);
 }
 
 $results = [];
 foreach ($businesses as $business) {
-    $data = OutreachService::dailyReportData((int) $business['id']);
-    $lines = [$business['brand_name'] . ' daily outreach report', ''];
+    $businessId = (int) $business['id'];
+    $timezone = app_timezone($businessId);
+    $localNow = app_now($businessId);
+    $data = OutreachService::dailyReportData($businessId);
+    $lines = [
+        $business['brand_name'] . ' daily outreach report',
+        'Timezone: ' . $timezone,
+        'Generated at: ' . $localNow->format('Y-m-d H:i:s'),
+        '',
+    ];
     foreach ($data as $label => $value) {
         $lines[] = str_replace('_', ' ', ucwords($label, '_')) . ': ' . $value;
     }

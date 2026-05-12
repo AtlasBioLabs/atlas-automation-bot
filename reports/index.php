@@ -50,7 +50,7 @@ render_header('Reports');
               <td><?= e($campaign['name']) ?></td>
               <td><?= badge_status($campaign['status']) ?></td>
               <td><?= e($campaign['audience_type']) ?></td>
-              <td><?= e($campaign['scheduled_at']) ?></td>
+              <td><?= e(format_app_datetime($campaign['scheduled_at'], $businessId)) ?></td>
               <td><?= e($campaign['total_recipients']) ?></td>
               <td><?= e($campaign['eligible_recipients']) ?></td>
               <td><?= e((int) $campaign['skipped_recipients'] + (int) $campaign['skipped_queue_count']) ?></td>

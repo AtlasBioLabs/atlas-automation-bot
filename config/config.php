@@ -23,6 +23,8 @@ function env_value(string $key, mixed $default = null): mixed
     return $value;
 }
 
+date_default_timezone_set((string) env_value('APP_TIMEZONE', 'Africa/Douala'));
+
 function mysql_url_config(string $url): array
 {
     if ($url === '') {
@@ -55,6 +57,7 @@ function app_config(?string $key = null, mixed $default = null): mixed
             'app_name' => (string) env_value('APP_NAME', 'Atlas BioLabs Outreach Bot'),
             'app_env' => (string) env_value('APP_ENV', 'local'),
             'app_url' => rtrim((string) env_value('APP_URL', 'http://localhost:8000'), '/'),
+            'app_timezone' => (string) env_value('APP_TIMEZONE', 'Africa/Douala'),
             'db_host' => (string) env_value('MYSQLHOST', $mysqlUrl['host'] ?? env_value('DB_HOST', '127.0.0.1')),
             'db_port' => (int) env_value('MYSQLPORT', $mysqlUrl['port'] ?? env_value('DB_PORT', 3306)),
             'db_name' => (string) env_value('MYSQLDATABASE', $mysqlUrl['name'] ?? env_value('DB_NAME', 'atlas_biolabs_bot')),

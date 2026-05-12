@@ -103,6 +103,8 @@ final class Settings
         $business['default_signature'] = (string) self::option('DEFAULT_SIGNATURE', $business['default_signature'], $businessProfileId);
         $business['compliance_footer'] = (string) self::option('COMPLIANCE_FOOTER', $business['compliance_footer'], $businessProfileId);
         $business['daily_send_limit'] = (int) self::option('DAILY_SEND_LIMIT', $business['daily_send_limit'], $businessProfileId);
+        $timezone = trim((string) ($business['timezone'] ?? ''));
+        $business['timezone'] = valid_timezone_name($timezone) ? $timezone : app_config('app_timezone', 'Africa/Douala');
 
         return $business;
     }

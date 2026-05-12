@@ -5,8 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/../app/layout.php';
 
 Auth::require();
+$businessId = BusinessProfile::currentId();
 $stmt = Database::pdo()->prepare('SELECT * FROM rfqs WHERE business_profile_id = ? ORDER BY created_at DESC LIMIT 250');
-$stmt->execute([BusinessProfile::currentId()]);
+$stmt->execute([$businessId]);
 $rfqs = $stmt->fetchAll();
 
 render_header('RFQs');
@@ -18,7 +19,7 @@ render_header('RFQs');
       <tbody>
       <?php foreach ($rfqs as $rfq): ?>
         <tr>
-          <td><?= e($rfq['created_at']) ?></td>
+          <td><?= e(format_app_datetime($rfq['created_at'], $businessId)) ?></td>
           <td><?= e($rfq['source'] ?? 'website_rfq') ?></td>
           <td><?= e($rfq['name']) ?></td>
           <td><?= e($rfq['company']) ?></td>

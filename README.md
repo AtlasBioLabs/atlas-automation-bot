@@ -28,6 +28,7 @@ CREATE DATABASE IF NOT EXISTS atlas_biolabs_bot CHARACTER SET utf8mb4 COLLATE ut
 ```powershell
 mysql -u root atlas_biolabs_bot < database/schema.sql
 mysql -u root atlas_biolabs_bot < database/seed.sql
+php scripts/run_migrations.php
 php scripts/create_admin.php
 php -S localhost:8000 router.php
 ```
@@ -51,8 +52,9 @@ Deploy steps:
 3. Add the environment variables listed below to the web service.
 4. Deploy the web service. Railway will build from the `Dockerfile`.
 5. Import `database/schema.sql` and `database/seed.sql` into the Railway MySQL database.
-6. Run `php scripts/create_admin.php` in a Railway shell or create the first admin from a secure one-off CLI session.
-7. Open `/login.php`, sign in, confirm the Atlas BioLabs profile is active, and keep `MAIL_PROVIDER=log` until you are ready to test a real provider.
+6. Run `php scripts/run_migrations.php` in a Railway shell to apply any pending safe SQL migrations such as `provider_reference` fixes and timezone defaults.
+7. Run `php scripts/create_admin.php` in a Railway shell or create the first admin from a secure one-off CLI session.
+8. Open `/login.php`, sign in, confirm the Atlas BioLabs profile is active, and keep `MAIL_PROVIDER=log` until you are ready to test a real provider.
 
 The app supports both local database variables and Railway MySQL variables. Railway values are read from `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, or `MYSQL_URL`.
 
@@ -61,6 +63,7 @@ Add these Railway variables to the PHP web service:
 ```env
 APP_ENV=production
 APP_URL=https://your-railway-domain.up.railway.app
+APP_TIMEZONE=Africa/Douala
 
 MYSQLHOST=${{MySQL.MYSQLHOST}}
 MYSQLPORT=${{MySQL.MYSQLPORT}}
@@ -75,6 +78,14 @@ MAIL_SMTP_PASS=
 ```
 
 Keep business-specific sender settings, `MAIL_PROVIDER`, SMTP host/user/port, daily limits, follow-up delays, signatures, and compliance footer in `/settings.php`. Keep `MAIL_PROVIDER=log` for initial Railway testing so no real emails are sent. If Railway SMTP connectivity fails, switch to `MAIL_PROVIDER=brevo_api` in `/settings.php` and set `MAIL_API_KEY` in Railway variables.
+
+Railway migration command:
+
+```sh
+php scripts/run_migrations.php
+```
+
+This script creates a `schema_migrations` table if needed, applies pending `.sql` files from `database/migrations`, does not drop existing data, and skips migrations that were already recorded.
 
 Security notes:
 
@@ -124,11 +135,19 @@ Railway Free/Hobby commonly blocks outbound SMTP connections. For Railway deploy
 
 Use `/tools/mail_diagnostics.php` for a safe mail readiness check. It shows the active business mail settings, whether `MAIL_API_KEY` exists, whether cURL is enabled, and it can run a Brevo account connectivity check without sending a campaign.
 
+If the Brevo account check passes but a real send still fails, check these first:
+- the active business profile `MAIL_FROM_EMAIL` is the exact Brevo-approved sender or verified domain address
+- the active business profile sender email is not still using a placeholder such as `no-reply@example.com`
+- the recipient email is valid
+- Railway has been redeployed after environment variable changes
+- the sender or domain has been verified inside Brevo transactional email settings
+
 ## Settings
 
 Keep these in `.env`:
 
 - `APP_URL`
+- `APP_TIMEZONE`
 - `DB_HOST`
 - `DB_NAME`
 - `DB_USER`
@@ -141,6 +160,7 @@ Keep these in `.env`:
 Control these from `/settings.php`:
 
 - business name, brand name, tagline, address, default signature
+- business timezone and scheduling display
 - mail provider, sender name/email, reply-to, admin notification email
 - SMTP host, port, and user
 - daily send limit
@@ -169,8 +189,8 @@ Campaigns are stored in `campaigns`, and every queued email keeps its selected `
 Run all active business profiles:
 
 ```powershell
-php cron/send_daily_emails.php
-php cron/send_daily_report.php
+php cron/send_daily_emails.php --all-businesses
+php cron/send_daily_report.php --all-businesses
 ```
 
 Run one business profile:
@@ -183,6 +203,8 @@ php cron/send_daily_report.php --business=1
 Sending is Monday-Friday only. Each profile uses its own daily sending limit and compliance fields. Sending is blocked for a profile if sender name, sender email, business address, or compliance footer is missing.
 
 The queue sender continues to respect daily limits, duplicate prevention, unsubscribes, bounces, and stopped lead statuses regardless of whether the actual provider is `log`, `smtp`, or `brevo_api`.
+
+All stored timestamps are treated as UTC internally. Displayed queue, report, RFQ, and follow-up times are converted to the selected business profile timezone. `APP_TIMEZONE` is only the global fallback; each business profile timezone takes priority.
 
 ## RFQ Forms
 
@@ -222,6 +244,8 @@ database/migrations/2026_05_12_business_profiles.sql
 database/migrations/2026_05_12_generic_templates.sql
 database/migrations/2026_05_12_campaigns_segments_rfq.sql
 database/migrations/2026_05_12_rfq_api_fields.sql
+database/migrations/2026_05_12_fix_email_logs_provider_reference.sql
+database/migrations/2026_05_12_fix_business_profile_timezone_defaults.sql
 ```
 
 These scripts add profile IDs safely and assign existing data to Atlas BioLabs profile `1`.

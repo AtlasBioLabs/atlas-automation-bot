@@ -25,6 +25,9 @@ final class SettingsValidator
                 $errors[] = "{$requiredField} is required.";
             }
         }
+        if (!valid_timezone_name((string) ($fields['TIMEZONE'] ?? ''))) {
+            $errors[] = 'TIMEZONE must be a valid IANA timezone.';
+        }
         if (($fields['MAIL_PROVIDER'] ?? '') === 'smtp') {
             foreach (['MAIL_FROM_NAME', 'MAIL_FROM_EMAIL', 'MAIL_SMTP_HOST', 'MAIL_SMTP_PORT', 'MAIL_SMTP_USER'] as $requiredField) {
                 if (trim((string) ($fields[$requiredField] ?? '')) === '') {

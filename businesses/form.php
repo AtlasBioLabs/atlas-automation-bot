@@ -23,7 +23,14 @@ $followup2 = $_POST['followup_2_days'] ?? ($formBusinessId ? Settings::get('foll
       <div class="col-md-4"><label class="form-label">Secondary color</label><input class="form-control" name="secondary_color" required value="<?= e($business['secondary_color']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Accent color</label><input class="form-control" name="accent_color" required value="<?= e($business['accent_color']) ?>"></div>
       <div class="col-md-6"><label class="form-label">Daily send limit</label><input class="form-control" type="number" min="1" name="daily_send_limit" required value="<?= e($business['daily_send_limit']) ?>"></div>
-      <div class="col-md-6"><label class="form-label">Timezone</label><input class="form-control" name="timezone" required value="<?= e($business['timezone']) ?>"></div>
+      <div class="col-md-6">
+        <label class="form-label">Timezone</label>
+        <select class="form-select" name="timezone" required>
+          <?php foreach (timezone_choices() as $timezone): ?>
+            <option value="<?= e($timezone) ?>"<?= selected((string) $business['timezone'], (string) $timezone) ?>><?= e($timezone) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
       <div class="col-md-6"><label class="form-label">Follow-up 1 delay days</label><input class="form-control" type="number" min="1" name="followup_1_days" required value="<?= e($followup1) ?>"></div>
       <div class="col-md-6"><label class="form-label">Follow-up 2 delay days</label><input class="form-control" type="number" min="1" name="followup_2_days" required value="<?= e($followup2) ?>"></div>
       <div class="col-12"><label class="form-label">Lead categories</label><textarea class="form-control" name="lead_categories" rows="7" required><?= e($categoryText) ?></textarea></div>

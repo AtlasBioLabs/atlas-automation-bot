@@ -10,13 +10,33 @@ $businessId = BusinessProfile::currentId();
 $business = Settings::effectiveBusiness($businessId) ?? BusinessProfile::current();
 $provider = strtolower((string) Settings::option('MAIL_PROVIDER', 'log', $businessId));
 $allowedProviders = ['log', 'smtp', 'brevo_api'];
-$diagnosticResult = null;
+$accountDiagnosticResult = null;
+$sendDiagnosticResult = null;
+$diagnosticEmail = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $action = (string) ($_POST['action'] ?? '');
     if ($action === 'test_brevo_connection') {
-        $diagnosticResult = Mailer::testBrevoConnection();
+        $accountDiagnosticResult = Mailer::testBrevoConnection();
+    } elseif ($action === 'send_brevo_diagnostic_email') {
+        $diagnosticEmail = trim((string) ($_POST['diagnostic_email'] ?? ''));
+        if (!filter_var($diagnosticEmail, FILTER_VALIDATE_EMAIL)) {
+            $sendDiagnosticResult = [
+                'sent' => false,
+                'provider' => $provider,
+                'status' => null,
+                'error' => 'Enter a valid diagnostic recipient email address.',
+                'reference' => null,
+                'sender_email' => (string) $business['sender_email'],
+                'recipient_email' => $diagnosticEmail,
+                'business_profile_id' => $businessId,
+                'business_name' => (string) $business['brand_name'],
+                'curl_error' => null,
+            ];
+        } else {
+            $sendDiagnosticResult = Mailer::sendBrevoDiagnosticEmail($diagnosticEmail, $business);
+        }
     }
 }
 
@@ -26,6 +46,14 @@ $atlasBotTokenExists = trim((string) app_config('atlas_bot_api_token', '')) !== 
 $curlEnabled = extension_loaded('curl') && function_exists('curl_init');
 $providerValid = in_array($provider, $allowedProviders, true);
 $replyTo = trim((string) $business['reply_to_email']);
+$serverTimezone = date_default_timezone_get();
+$businessTimezone = app_timezone($businessId);
+$serverNow = new DateTimeImmutable('now');
+$utcNow = app_utc_now();
+$localNow = app_now($businessId);
+$nextQueueStmt = Database::pdo()->prepare('SELECT scheduled_at FROM email_queue WHERE business_profile_id = ? AND status = "pending" ORDER BY scheduled_at ASC LIMIT 1');
+$nextQueueStmt->execute([$businessId]);
+$nextQueuedAt = $nextQueueStmt->fetchColumn();
 
 render_header('Mail Diagnostics');
 ?>
@@ -46,6 +74,12 @@ render_header('Mail Diagnostics');
               <tr><th scope="row">APP_URL</th><td><?= e((string) app_config('app_url', '')) ?></td></tr>
               <tr><th scope="row">PHP cURL extension</th><td><?= $curlEnabled ? 'enabled' : 'missing' ?></td></tr>
               <tr><th scope="row">Selected provider valid</th><td><?= $providerValid ? 'yes' : 'no' ?></td></tr>
+              <tr><th scope="row">Server timezone</th><td><?= e($serverTimezone) ?></td></tr>
+              <tr><th scope="row">Selected business timezone</th><td><?= e($businessTimezone) ?></td></tr>
+              <tr><th scope="row">Current server time</th><td><?= e($serverNow->format('Y-m-d H:i:s')) ?></td></tr>
+              <tr><th scope="row">Current business local time</th><td><?= e($localNow->format('Y-m-d H:i:s')) ?></td></tr>
+              <tr><th scope="row">Current UTC time</th><td><?= e($utcNow->format('Y-m-d H:i:s')) ?></td></tr>
+              <tr><th scope="row">Next queued email time</th><td><?= e($nextQueuedAt ? format_app_datetime((string) $nextQueuedAt, $businessId) : 'No pending queue items') ?></td></tr>
             </tbody>
           </table>
         </div>
@@ -83,15 +117,53 @@ render_header('Mail Diagnostics');
           </form>
         </div>
 
-        <?php if ($diagnosticResult !== null): ?>
-          <div class="alert alert-<?= $diagnosticResult['success'] ? 'success' : 'danger' ?> mb-0">
-            <div><strong>Result:</strong> <?= $diagnosticResult['success'] ? 'success' : 'failure' ?></div>
-            <div><strong>HTTP status:</strong> <?= e($diagnosticResult['status'] !== null ? (string) $diagnosticResult['status'] : 'n/a') ?></div>
-            <div><strong>Message:</strong> <?= e((string) $diagnosticResult['message']) ?></div>
+        <?php if ($accountDiagnosticResult !== null): ?>
+          <div class="alert alert-<?= $accountDiagnosticResult['success'] ? 'success' : 'danger' ?> mb-0">
+            <div><strong>Result:</strong> <?= $accountDiagnosticResult['success'] ? 'success' : 'failure' ?></div>
+            <div><strong>HTTP status:</strong> <?= e($accountDiagnosticResult['status'] !== null ? (string) $accountDiagnosticResult['status'] : 'n/a') ?></div>
+            <div><strong>Message:</strong> <?= e((string) $accountDiagnosticResult['message']) ?></div>
           </div>
         <?php else: ?>
           <div class="alert alert-warning mb-0 small">
             Use this after setting <code>MAIL_PROVIDER=brevo_api</code> and adding <code>MAIL_API_KEY</code> in Railway. If SMTP is blocked on Railway, this is the fastest way to tell whether Brevo credentials are healthy.
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Send Brevo Diagnostic Email</h2>
+            <div class="text-muted small">Calls the real <code>POST /v3/smtp/email</code> endpoint with the active business sender settings. This sends one direct diagnostic email only and does not touch the queue.</div>
+          </div>
+        </div>
+
+        <form method="post" class="row g-3">
+          <?= csrf_field() ?>
+          <div class="col-md-8">
+            <label class="form-label">Recipient email</label>
+            <input class="form-control" type="email" name="diagnostic_email" value="<?= e($diagnosticEmail) ?>" placeholder="you@example.com" required>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-outline-primary w-100" type="submit" name="action" value="send_brevo_diagnostic_email">Send Brevo Diagnostic Email</button>
+          </div>
+        </form>
+
+        <?php if ($sendDiagnosticResult !== null): ?>
+          <div class="alert alert-<?= !empty($sendDiagnosticResult['sent']) ? 'success' : 'danger' ?> mt-3 mb-0">
+            <div><strong>Result:</strong> <?= !empty($sendDiagnosticResult['sent']) ? 'success' : 'failure' ?></div>
+            <div><strong>HTTP status:</strong> <?= e(($sendDiagnosticResult['status'] ?? null) !== null ? (string) $sendDiagnosticResult['status'] : 'n/a') ?></div>
+            <div><strong>Provider:</strong> <?= e((string) ($sendDiagnosticResult['provider'] ?? $provider)) ?></div>
+            <div><strong>Message:</strong> <?= e((string) ($sendDiagnosticResult['error'] ?: ($sendDiagnosticResult['response_message'] ?? 'OK'))) ?></div>
+            <?php if (!empty($sendDiagnosticResult['reference'])): ?><div><strong>Brevo message ID:</strong> <?= e((string) $sendDiagnosticResult['reference']) ?></div><?php endif; ?>
+            <?php if (!empty($sendDiagnosticResult['curl_error'])): ?><div><strong>cURL error:</strong> <?= e((string) $sendDiagnosticResult['curl_error']) ?></div><?php endif; ?>
+            <div><strong>Sender email used:</strong> <?= e((string) ($sendDiagnosticResult['sender_email'] ?? $business['sender_email'])) ?></div>
+            <div><strong>Recipient email used:</strong> <?= e((string) ($sendDiagnosticResult['recipient_email'] ?? $diagnosticEmail)) ?></div>
+            <div><strong>Active business profile:</strong> <?= e((string) ($sendDiagnosticResult['business_name'] ?? $business['brand_name'])) ?> (#<?= e((string) ($sendDiagnosticResult['business_profile_id'] ?? $businessId)) ?>)</div>
           </div>
         <?php endif; ?>
       </div>

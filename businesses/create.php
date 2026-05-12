@@ -24,7 +24,7 @@ $business = [
     'compliance_footer' => '',
     'default_signature' => '',
     'daily_send_limit' => '30',
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Douala',
     'active' => 1,
 ];
 

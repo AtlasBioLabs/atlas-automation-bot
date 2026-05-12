@@ -18,7 +18,7 @@ $input = [
     'campaign_description' => $_REQUEST['campaign_description'] ?? '',
     'template_id' => $_REQUEST['template_id'] ?? '',
     'send_type' => $_REQUEST['send_type'] ?? 'filtered',
-    'scheduled_at' => $_REQUEST['scheduled_at'] ?? date('Y-m-d\TH:i'),
+    'scheduled_at' => $_REQUEST['scheduled_at'] ?? app_local_input_value(null, $businessId),
     'lead_id' => $_REQUEST['lead_id'] ?? '',
     'selected_lead_ids' => $_REQUEST['selected_lead_ids'] ?? ($_REQUEST['lead_ids'] ?? []),
     'filters' => [
@@ -105,9 +105,9 @@ render_header('Create Campaign Queue');
         <div class="col-md-3"><div class="small text-muted">Eligible leads</div><div class="fs-4 fw-semibold"><?= e($preview['eligible_count']) ?></div></div>
         <div class="col-md-3"><div class="small text-muted">Skipped leads</div><div class="fs-4 fw-semibold"><?= e($preview['skipped_count']) ?></div></div>
         <div class="col-md-3"><div class="small text-muted">Daily send limit</div><div class="fs-4 fw-semibold"><?= e(Settings::option('DAILY_SEND_LIMIT', Settings::option('daily_send_limit', 30, $businessId), $businessId)) ?></div></div>
-        <div class="col-md-3"><div class="small text-muted">Scheduled at</div><div class="fw-semibold"><?= e(QueueService::normalizeScheduledAt((string) $input['scheduled_at'])) ?></div></div>
+        <div class="col-md-3"><div class="small text-muted">Scheduled at</div><div class="fw-semibold"><?= e(format_app_datetime(QueueService::normalizeScheduledAt((string) $input['scheduled_at'], $businessId), $businessId)) ?></div></div>
       </div>
-      <div class="alert alert-warning small">Queued emails are not sent instantly. The sender processes pending queue rows later and still respects the daily send limit, unsubscribes, bounces, stopped statuses, and duplicate prevention.</div>
+      <div class="alert alert-warning small">Queued emails are not sent instantly. The sender processes pending queue rows later and still respects the daily send limit, unsubscribes, bounces, stopped statuses, and duplicate prevention. Schedule times are interpreted in <?= e(app_timezone($businessId)) ?>.</div>
       <?php if ($preview['skipped_reason_counts']): ?>
         <div class="mb-3">
           <h3 class="h6">Skipped reasons</h3>

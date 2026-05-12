@@ -11,6 +11,7 @@ $business = Settings::effectiveBusiness($businessId) ?? BusinessProfile::current
 $errors = [];
 $testErrors = [];
 $testEmail = '';
+$testResult = null;
 
 $fields = [
     'APP_NAME' => $business['brand_name'],
@@ -25,6 +26,7 @@ $fields = [
     'MAIL_SMTP_USER' => Settings::option('MAIL_SMTP_USER', '', $businessId),
     'ADMIN_EMAIL' => $business['admin_notification_email'],
     'BUSINESS_ADDRESS' => $business['business_address'],
+    'TIMEZONE' => $business['timezone'] ?: app_config('app_timezone', 'Africa/Douala'),
     'DAILY_SEND_LIMIT' => (string) $business['daily_send_limit'],
     'FOLLOWUP_1_DAYS' => Settings::option('FOLLOWUP_1_DAYS', Settings::option('followup_1_days', '3', $businessId), $businessId),
     'FOLLOWUP_2_DAYS' => Settings::option('FOLLOWUP_2_DAYS', Settings::option('followup_2_days', '7', $businessId), $businessId),
@@ -49,11 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "This is a one-off provider connectivity test for {$business['brand_name']}.\n\nProvider: {$provider}\nBusiness profile ID: {$businessId}\n\nNo campaign or queue rows were sent by this test.",
                 $business
             );
-            if ($result['sent']) {
-                flash('success', 'Test email sent using ' . $provider . ($result['reference'] ? ' (' . $result['reference'] . ')' : '') . '.');
-                redirect('/settings.php');
+            $testResult = $result;
+            if (!$result['sent']) {
+                $testErrors[] = (string) $result['error'];
             }
-            $testErrors[] = (string) $result['error'];
         }
     } else {
         foreach ($fields as $key => $value) {
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE business_profiles
                  SET business_name = ?, brand_name = ?, tagline = ?, sender_name = ?, sender_email = ?, reply_to_email = ?,
                      admin_notification_email = ?, business_address = ?, compliance_footer = ?, default_signature = ?,
-                     daily_send_limit = ?, updated_at = NOW()
+                     daily_send_limit = ?, timezone = ?, updated_at = NOW()
                  WHERE id = ?'
             );
             $stmt->execute([
@@ -89,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fields['COMPLIANCE_FOOTER'],
                 $fields['DEFAULT_SIGNATURE'],
                 (int) $fields['DAILY_SEND_LIMIT'],
+                $fields['TIMEZONE'],
                 $businessId,
             ]);
 
@@ -146,6 +148,21 @@ render_header('Settings');
     <div class="card shadow-sm"><div class="card-body row g-3">
       <h2 class="h5">Provider Test</h2>
       <?php if ($testErrors): ?><div class="col-12"><div class="alert alert-danger mb-0"><?= e(implode(' ', $testErrors)) ?></div></div><?php endif; ?>
+      <?php if ($testResult): ?>
+        <div class="col-12">
+          <div class="alert alert-<?= $testResult['sent'] ? 'success' : 'danger' ?> mb-0">
+            <div><strong>Result:</strong> <?= $testResult['sent'] ? 'success' : 'failure' ?></div>
+            <div><strong>Provider used:</strong> <?= e((string) ($testResult['provider'] ?? 'unknown')) ?></div>
+            <div><strong>HTTP status:</strong> <?= e(($testResult['status'] ?? null) !== null ? (string) $testResult['status'] : 'n/a') ?></div>
+            <div><strong>Message:</strong> <?= e((string) ($testResult['error'] ?: ($testResult['response_message'] ?? 'OK'))) ?></div>
+            <?php if (!empty($testResult['reference'])): ?><div><strong>Provider reference:</strong> <?= e((string) $testResult['reference']) ?></div><?php endif; ?>
+            <?php if (!empty($testResult['curl_error'])): ?><div><strong>cURL error:</strong> <?= e((string) $testResult['curl_error']) ?></div><?php endif; ?>
+            <div><strong>Sender email used:</strong> <?= e((string) ($testResult['sender_email'] ?? $business['sender_email'])) ?></div>
+            <div><strong>Recipient email used:</strong> <?= e((string) ($testResult['recipient_email'] ?? $testEmail)) ?></div>
+            <div><strong>Active business profile:</strong> <?= e((string) ($testResult['business_name'] ?? $business['brand_name'])) ?> (#<?= e((string) ($testResult['business_profile_id'] ?? $businessId)) ?>)</div>
+          </div>
+        </div>
+      <?php endif; ?>
       <div class="col-12"><div class="alert alert-warning small mb-0">This sends one direct provider connectivity test email only. It does not queue a campaign or contact leads in bulk. Save settings first if you want to test the latest provider selection. For provider health and Brevo account checks, use <a href="/tools/mail_diagnostics.php" class="alert-link">Mail Diagnostics</a>.</div></div>
       <div class="col-md-8"><label class="form-label">Test email recipient</label><input class="form-control" type="email" name="test_email" value="<?= e($testEmail) ?>" placeholder="you@example.com"></div>
       <div class="col-md-4 d-flex align-items-end">
@@ -166,6 +183,29 @@ render_header('Settings');
       <h2 class="h5">Follow-Up Settings</h2>
       <div class="col-md-6"><label class="form-label">Follow-up 1 days</label><input class="form-control" name="FOLLOWUP_1_DAYS" value="<?= e($fields['FOLLOWUP_1_DAYS']) ?>" required></div>
       <div class="col-md-6"><label class="form-label">Follow-up 2 days</label><input class="form-control" name="FOLLOWUP_2_DAYS" value="<?= e($fields['FOLLOWUP_2_DAYS']) ?>" required></div>
+    </div></div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm"><div class="card-body row g-3">
+      <h2 class="h5">Timezone &amp; Scheduling</h2>
+      <div class="col-md-4">
+        <label class="form-label">Timezone</label>
+        <select class="form-select" name="TIMEZONE" required>
+          <?php foreach (timezone_choices() as $timezone): ?>
+            <option value="<?= e($timezone) ?>"<?= selected((string) $fields['TIMEZONE'], (string) $timezone) ?>><?= e($timezone) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <div class="small text-muted">Current app time preview</div>
+        <div class="fw-semibold"><?= e(format_app_datetime(app_utc_now(), $businessId)) ?></div>
+      </div>
+      <div class="col-md-4">
+        <div class="small text-muted">Current UTC time preview</div>
+        <div class="fw-semibold"><?= e(app_utc_now()->format('Y-m-d H:i:s')) ?></div>
+      </div>
+      <div class="col-12"><div class="alert alert-info small mb-0">This timezone controls campaign scheduling, queue sending, follow-up scheduling, reports, and displayed timestamps.</div></div>
     </div></div>
   </div>
 

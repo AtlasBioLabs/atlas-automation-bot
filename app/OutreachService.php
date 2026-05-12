@@ -55,8 +55,8 @@ final class OutreachService
             return ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'message' => 'Business profile is inactive or missing.'];
         }
 
-        $today = new DateTimeImmutable('now');
-        if ((int) $today->format('N') >= 6) {
+        $localNow = app_now($businessProfileId);
+        if ((int) $localNow->format('N') >= 6) {
             return ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'message' => 'Weekend sending is disabled.'];
         }
 
@@ -66,6 +66,17 @@ final class OutreachService
         }
 
         $limit = (int) $business['daily_send_limit'];
+        [$todayStartUtc, $tomorrowStartUtc] = app_current_day_bounds_utc($businessProfileId);
+        $sentToday = self::countWhere(
+            'email_logs',
+            'business_profile_id = ? AND status = "sent" AND created_at >= ? AND created_at < ?',
+            [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]
+        );
+        $remainingLimit = max(0, $limit - $sentToday);
+        if ($remainingLimit === 0) {
+            return ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'message' => 'Daily send limit already reached for this local business day.'];
+        }
+
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
             'SELECT q.*, l.company_name, l.contact_name, l.email, l.category, l.status AS lead_status, l.bounced, l.unsubscribed, l.unsubscribe_token,
@@ -73,12 +84,13 @@ final class OutreachService
              FROM email_queue q
              JOIN leads l ON l.id = q.lead_id
              LEFT JOIN email_templates t ON t.id = q.template_id AND t.business_profile_id = q.business_profile_id
-             WHERE q.business_profile_id = ? AND q.status = "pending" AND q.scheduled_at <= NOW()
+             WHERE q.business_profile_id = ? AND q.status = "pending" AND q.scheduled_at <= ?
              ORDER BY q.scheduled_at ASC, q.id ASC
              LIMIT ?'
         );
         $stmt->bindValue(1, $businessProfileId, PDO::PARAM_INT);
-        $stmt->bindValue(2, $limit, PDO::PARAM_INT);
+        $stmt->bindValue(2, now_sql());
+        $stmt->bindValue(3, $remainingLimit, PDO::PARAM_INT);
         $stmt->execute();
         $rows = $stmt->fetchAll();
 
@@ -130,21 +142,21 @@ final class OutreachService
     public static function dailyReportData(?int $businessProfileId = null): array
     {
         $businessProfileId ??= BusinessProfile::currentId();
-        $today = date('Y-m-d');
-        $tomorrow = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
+        [$todayStartUtc, $tomorrowStartUtc] = app_current_day_bounds_utc($businessProfileId);
+        [$tomorrowWindowStartUtc, $dayAfterTomorrowStartUtc] = app_tomorrow_day_bounds_utc($businessProfileId);
 
         return [
-            'emails_sent_today' => self::countWhere('email_logs', 'business_profile_id = ? AND status = "sent" AND DATE(created_at) = ?', [$businessProfileId, $today]),
-            'failed_emails_today' => self::countWhere('email_logs', 'business_profile_id = ? AND status = "failed" AND DATE(created_at) = ?', [$businessProfileId, $today]),
-            'total_queued_today' => self::countWhere('email_queue', 'business_profile_id = ? AND DATE(created_at) = ?', [$businessProfileId, $today]),
-            'skipped_today' => self::countWhere('email_queue', 'business_profile_id = ? AND status = "skipped" AND DATE(updated_at) = ?', [$businessProfileId, $today]),
+            'emails_sent_today' => self::countWhere('email_logs', 'business_profile_id = ? AND status = "sent" AND created_at >= ? AND created_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
+            'failed_emails_today' => self::countWhere('email_logs', 'business_profile_id = ? AND status = "failed" AND created_at >= ? AND created_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
+            'total_queued_today' => self::countWhere('email_queue', 'business_profile_id = ? AND created_at >= ? AND created_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
+            'skipped_today' => self::countWhere('email_queue', 'business_profile_id = ? AND status = "skipped" AND updated_at >= ? AND updated_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
             'pending_queue' => self::countWhere('email_queue', 'business_profile_id = ? AND status = "pending"', [$businessProfileId]),
-            'campaigns_created_today' => self::countWhere('campaigns', 'business_profile_id = ? AND DATE(created_at) = ?', [$businessProfileId, $today]),
-            'new_rfqs_today' => self::countWhere('rfqs', 'business_profile_id = ? AND DATE(created_at) = ?', [$businessProfileId, $today]),
+            'campaigns_created_today' => self::countWhere('campaigns', 'business_profile_id = ? AND created_at >= ? AND created_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
+            'new_rfqs_today' => self::countWhere('rfqs', 'business_profile_id = ? AND created_at >= ? AND created_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
             'interested_leads' => self::countWhere('leads', 'business_profile_id = ? AND status = "interested"', [$businessProfileId]),
-            'followups_tomorrow' => self::countWhere('email_queue', 'business_profile_id = ? AND status = "pending" AND DATE(scheduled_at) = ?', [$businessProfileId, $tomorrow]),
-            'unsubscribes_today' => self::countWhere('leads', 'business_profile_id = ? AND unsubscribed = 1 AND DATE(updated_at) = ?', [$businessProfileId, $today]),
-            'bounces_today' => self::countWhere('leads', 'business_profile_id = ? AND bounced = 1 AND DATE(updated_at) = ?', [$businessProfileId, $today]),
+            'followups_tomorrow' => self::countWhere('email_queue', 'business_profile_id = ? AND status = "pending" AND scheduled_at >= ? AND scheduled_at < ?', [$businessProfileId, $tomorrowWindowStartUtc, $dayAfterTomorrowStartUtc]),
+            'unsubscribes_today' => self::countWhere('leads', 'business_profile_id = ? AND unsubscribed = 1 AND updated_at >= ? AND updated_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
+            'bounces_today' => self::countWhere('leads', 'business_profile_id = ? AND bounced = 1 AND updated_at >= ? AND updated_at < ?', [$businessProfileId, $todayStartUtc, $tomorrowStartUtc]),
         ];
     }
 
@@ -225,11 +237,7 @@ final class OutreachService
 
     private static function logEmail(int $businessProfileId, int $leadId, int $templateId, int $queueId, string $recipient, string $subject, array $result): void
     {
-        $stmt = Database::pdo()->prepare(
-            'INSERT INTO email_logs (business_profile_id, lead_id, template_id, queue_id, recipient_email, subject, status, provider_reference, error_message, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
-        );
-        $stmt->execute([
+        $params = [
             $businessProfileId,
             $leadId,
             $templateId,
@@ -239,7 +247,34 @@ final class OutreachService
             $result['sent'] ? 'sent' : 'failed',
             $result['reference'] ?? null,
             $result['error'],
-        ]);
+        ];
+
+        try {
+            $stmt = Database::pdo()->prepare(
+                'INSERT INTO email_logs (business_profile_id, lead_id, template_id, queue_id, recipient_email, subject, status, provider_reference, error_message, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+            );
+            $stmt->execute($params);
+        } catch (PDOException $exception) {
+            if (!str_contains(strtolower($exception->getMessage()), 'provider_reference')) {
+                throw $exception;
+            }
+
+            $fallback = Database::pdo()->prepare(
+                'INSERT INTO email_logs (business_profile_id, lead_id, template_id, queue_id, recipient_email, subject, status, error_message, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+            );
+            $fallback->execute([
+                $businessProfileId,
+                $leadId,
+                $templateId,
+                $queueId,
+                $recipient,
+                $subject,
+                $result['sent'] ? 'sent' : 'failed',
+                $result['error'],
+            ]);
+        }
     }
 
     private static function refreshCampaignStatus(int $businessProfileId, int $campaignId): void
@@ -268,29 +303,36 @@ final class OutreachService
     {
         $stage = (int) $row['followup_stage'];
         $leadId = (int) $row['lead_id'];
+        $businessProfileId = (int) $row['business_profile_id'];
         $pdo = Database::pdo();
+        $sentAtUtc = now_sql();
+        $localNow = app_now($businessProfileId);
 
         if ($stage === 0) {
-            $next = (new DateTimeImmutable('+' . (int) Settings::option('FOLLOWUP_1_DAYS', Settings::get('followup_1_days', app_config('followup_1_days', 3), (int) $row['business_profile_id']), (int) $row['business_profile_id']) . ' days'))->format('Y-m-d H:i:s');
-            $pdo->prepare('UPDATE leads SET status = "emailed", followup_stage = 0, last_contacted_at = NOW(), next_followup_at = ?, updated_at = NOW() WHERE id = ?')->execute([$next, $leadId]);
+            $delayDays = (int) Settings::option('FOLLOWUP_1_DAYS', Settings::get('followup_1_days', app_config('followup_1_days', 3), $businessProfileId), $businessProfileId);
+            $next = $localNow->modify('+' . $delayDays . ' days');
+            $nextUtc = app_datetime_to_utc($next, $businessProfileId)?->format('Y-m-d H:i:s');
+            $pdo->prepare('UPDATE leads SET status = "emailed", followup_stage = 0, last_contacted_at = ?, next_followup_at = ?, updated_at = NOW() WHERE id = ?')->execute([$sentAtUtc, $nextUtc, $leadId]);
             $template = self::templateForLead($row, 1);
-            if ($template) {
-                self::queueEmail((int) $row['business_profile_id'], $leadId, (int) $template['id'], $next);
+            if ($template && $nextUtc !== null) {
+                self::queueEmail($businessProfileId, $leadId, (int) $template['id'], $nextUtc);
             }
             return;
         }
 
         if ($stage === 1) {
-            $next = (new DateTimeImmutable('+' . (int) Settings::option('FOLLOWUP_2_DAYS', Settings::get('followup_2_days', app_config('followup_2_days', 7), (int) $row['business_profile_id']), (int) $row['business_profile_id']) . ' days'))->format('Y-m-d H:i:s');
-            $pdo->prepare('UPDATE leads SET status = "follow_up_1_sent", followup_stage = 1, last_contacted_at = NOW(), next_followup_at = ?, updated_at = NOW() WHERE id = ?')->execute([$next, $leadId]);
+            $delayDays = (int) Settings::option('FOLLOWUP_2_DAYS', Settings::get('followup_2_days', app_config('followup_2_days', 7), $businessProfileId), $businessProfileId);
+            $next = $localNow->modify('+' . $delayDays . ' days');
+            $nextUtc = app_datetime_to_utc($next, $businessProfileId)?->format('Y-m-d H:i:s');
+            $pdo->prepare('UPDATE leads SET status = "follow_up_1_sent", followup_stage = 1, last_contacted_at = ?, next_followup_at = ?, updated_at = NOW() WHERE id = ?')->execute([$sentAtUtc, $nextUtc, $leadId]);
             $template = self::templateForLead($row, 2);
-            if ($template) {
-                self::queueEmail((int) $row['business_profile_id'], $leadId, (int) $template['id'], $next);
+            if ($template && $nextUtc !== null) {
+                self::queueEmail($businessProfileId, $leadId, (int) $template['id'], $nextUtc);
             }
             return;
         }
 
-        $pdo->prepare('UPDATE leads SET status = "follow_up_2_sent", followup_stage = 2, last_contacted_at = NOW(), next_followup_at = NULL, updated_at = NOW() WHERE id = ?')->execute([$leadId]);
+        $pdo->prepare('UPDATE leads SET status = "follow_up_2_sent", followup_stage = 2, last_contacted_at = ?, next_followup_at = NULL, updated_at = NOW() WHERE id = ?')->execute([$sentAtUtc, $leadId]);
     }
 
     private static function countWhere(string $table, string $where, array $params): int

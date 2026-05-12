@@ -22,10 +22,12 @@ $count = function (string $sql, array $params = []) use ($pdo): int {
     $stmt->execute($params);
     return (int) $stmt->fetchColumn();
 };
+$nowUtc = app_utc_now()->format('Y-m-d H:i:s');
+[$todayStartUtc, $tomorrowStartUtc] = app_current_day_bounds_utc($businessId);
 $stats['Total leads'] = $count('SELECT COUNT(*) FROM leads WHERE business_profile_id = ?', [$businessId]);
 $stats['New leads'] = $count('SELECT COUNT(*) FROM leads WHERE business_profile_id = ? AND status = "new"', [$businessId]);
-$stats['Emails sent today'] = $count('SELECT COUNT(*) FROM email_logs WHERE business_profile_id = ? AND status = "sent" AND DATE(created_at) = CURDATE()', [$businessId]);
-$stats['Follow-ups due'] = $count('SELECT COUNT(*) FROM email_queue WHERE business_profile_id = ? AND status = "pending" AND scheduled_at <= NOW()', [$businessId]);
+$stats['Emails sent today'] = $count('SELECT COUNT(*) FROM email_logs WHERE business_profile_id = ? AND status = "sent" AND created_at >= ? AND created_at < ?', [$businessId, $todayStartUtc, $tomorrowStartUtc]);
+$stats['Follow-ups due'] = $count('SELECT COUNT(*) FROM email_queue WHERE business_profile_id = ? AND status = "pending" AND scheduled_at <= ?', [$businessId, $nowUtc]);
 $stats['Interested leads'] = $count('SELECT COUNT(*) FROM leads WHERE business_profile_id = ? AND status = "interested"', [$businessId]);
 $stats['Bounced emails'] = $count('SELECT COUNT(*) FROM leads WHERE business_profile_id = ? AND bounced = 1', [$businessId]);
 $stats['Unsubscribed leads'] = $count('SELECT COUNT(*) FROM leads WHERE business_profile_id = ? AND unsubscribed = 1', [$businessId]);
@@ -60,7 +62,7 @@ render_header('Dashboard');
             <td><?= e($lead['email']) ?></td>
             <td><?= e($lead['category']) ?></td>
             <td><?= badge_status($lead['status']) ?></td>
-            <td><?= e($lead['created_at']) ?></td>
+            <td><?= e(format_app_datetime($lead['created_at'], $businessId)) ?></td>
           </tr>
         <?php endforeach; ?>
       </tbody>

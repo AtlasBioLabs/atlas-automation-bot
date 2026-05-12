@@ -64,7 +64,7 @@ require __DIR__ . '/form.php';
       <input type="hidden" name="lead_id" value="<?= e($lead['id']) ?>">
       <div class="col-md-4"><label class="form-label">Campaign name</label><input class="form-control" name="campaign_name" value="Single lead email - <?= e($lead['company_name']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Template</label><select class="form-select" name="template_id" required><option value="">Select template</option><?php foreach ($templates as $template): ?><option value="<?= e($template['id']) ?>"><?= e($template['name']) ?></option><?php endforeach; ?></select></div>
-      <div class="col-md-3"><label class="form-label">Schedule</label><input class="form-control" type="datetime-local" name="scheduled_at" value="<?= e(date('Y-m-d\TH:i')) ?>"></div>
+      <div class="col-md-3"><label class="form-label">Schedule</label><input class="form-control" type="datetime-local" name="scheduled_at" value="<?= e(app_local_input_value(null, $businessId)) ?>"></div>
       <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Preview</button></div>
     </form>
   </div>

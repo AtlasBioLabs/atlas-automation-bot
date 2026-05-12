@@ -78,7 +78,7 @@ final class QueueService
             return ['created' => false, 'errors' => ['Campaign name is required.']];
         }
 
-        $scheduledAt = self::normalizeScheduledAt((string) ($input['scheduled_at'] ?? ''));
+        $scheduledAt = self::normalizeScheduledAt((string) ($input['scheduled_at'] ?? ''), $businessProfileId);
         if ($scheduledAt === null) {
             return ['created' => false, 'errors' => ['A valid schedule date/time is required.']];
         }
@@ -150,14 +150,16 @@ final class QueueService
 
         $createdFrom = trim((string) ($filters['created_from'] ?? ''));
         if ($createdFrom !== '') {
-            $where[] = 'DATE(created_at) >= ?';
-            $params[] = $createdFrom;
+            [$startUtc,] = app_local_day_bounds_utc($createdFrom, $businessProfileId);
+            $where[] = 'created_at >= ?';
+            $params[] = $startUtc;
         }
 
         $createdTo = trim((string) ($filters['created_to'] ?? ''));
         if ($createdTo !== '') {
-            $where[] = 'DATE(created_at) <= ?';
-            $params[] = $createdTo;
+            [, $endUtc] = app_local_day_bounds_utc($createdTo, $businessProfileId);
+            $where[] = 'created_at < ?';
+            $params[] = $endUtc;
         }
 
         $search = trim((string) ($filters['q'] ?? ''));
@@ -171,16 +173,13 @@ final class QueueService
         return [$where, $params];
     }
 
-    public static function normalizeScheduledAt(string $value): ?string
+    public static function normalizeScheduledAt(string $value, ?int $businessProfileId = null): ?string
     {
         if (trim($value) === '') {
             return now_sql();
         }
 
-        $date = DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $value)
-            ?: DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $value)
-            ?: DateTimeImmutable::createFromFormat('Y-m-d H:i', $value);
-
+        $date = app_datetime_to_utc($value, $businessProfileId);
         return $date ? $date->format('Y-m-d H:i:s') : null;
     }
 

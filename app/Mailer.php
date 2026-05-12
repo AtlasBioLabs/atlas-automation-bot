@@ -44,34 +44,47 @@ final class Mailer
     {
         $business ??= BusinessProfile::current();
         $business = Settings::effectiveBusiness((int) $business['id']) ?? $business;
+        $provider = strtolower((string) Settings::option('MAIL_PROVIDER', 'log', (int) $business['id']));
+        $base = self::baseResultContext($provider, $business, $toEmail);
         $missing = BusinessProfile::requiredMailFieldsMissing($business);
         if ($missing) {
-            return ['sent' => false, 'error' => 'Business profile is missing required email fields: ' . implode(', ', $missing)];
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => 'Business profile is missing required email fields: ' . implode(', ', $missing),
+            ]);
         }
 
         $body = self::appendCompliance($body, $business);
-        $provider = strtolower((string) Settings::option('MAIL_PROVIDER', 'log', (int) $business['id']));
         if ($provider === 'log') {
-            return self::logMail($toEmail, $toName, $subject, $body, $business);
+            return self::logMail($toEmail, $toName, $subject, $body, $business, $base);
         }
 
         if ($provider === 'brevo_api') {
-            return self::sendBrevoApi($toEmail, $toName, $subject, $body, $business);
+            return self::sendBrevoApi($toEmail, $toName, $subject, $body, $business, $base);
         }
 
         if ($provider !== 'smtp') {
-            return ['sent' => false, 'error' => 'Unsupported MAIL_PROVIDER. Use log, smtp, or brevo_api.'];
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => 'Unsupported MAIL_PROVIDER. Use log, smtp, or brevo_api.',
+            ]);
         }
 
         if (!class_exists(PHPMailer::class)) {
-            return ['sent' => false, 'error' => 'PHPMailer is not installed. Run Composer install.'];
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => 'PHPMailer is not installed. Run Composer install.',
+            ]);
         }
 
         $smtpHost = (string) Settings::option('MAIL_SMTP_HOST', '', (int) $business['id']);
         $smtpPort = (int) Settings::option('MAIL_SMTP_PORT', 587, (int) $business['id']);
         $smtpUser = (string) Settings::option('MAIL_SMTP_USER', '', (int) $business['id']);
         if ($smtpHost === '' || $smtpPort <= 0 || $smtpUser === '') {
-            return ['sent' => false, 'error' => 'SMTP settings are incomplete for this business profile.'];
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => 'SMTP settings are incomplete for this business profile.',
+            ]);
         }
 
         try {
@@ -95,10 +108,38 @@ final class Mailer
             $mail->AltBody = $body;
             $mail->send();
 
-            return ['sent' => true, 'error' => null, 'reference' => null];
+            return self::mergeResult($base, ['sent' => true, 'error' => null, 'reference' => null]);
         } catch (MailException $exception) {
-            return ['sent' => false, 'error' => $exception->getMessage(), 'reference' => null];
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => $exception->getMessage(),
+                'reference' => null,
+            ]);
         }
+    }
+
+    public static function sendBrevoDiagnosticEmail(string $recipientEmail, ?array $business = null): array
+    {
+        $business ??= BusinessProfile::current();
+        $business = Settings::effectiveBusiness((int) $business['id']) ?? $business;
+        $provider = strtolower((string) Settings::option('MAIL_PROVIDER', 'log', (int) $business['id']));
+        $base = self::baseResultContext($provider, $business, $recipientEmail);
+
+        if ($provider !== 'brevo_api') {
+            return self::mergeResult($base, [
+                'sent' => false,
+                'error' => 'MAIL_PROVIDER must be brevo_api for the Brevo diagnostic send.',
+            ]);
+        }
+
+        return self::sendBrevoApi(
+            $recipientEmail,
+            'Brevo Diagnostic',
+            'Atlas BioLabs Brevo API Test',
+            'This is a one-off Brevo API test from the Atlas BioLabs automation bot.',
+            $business,
+            $base
+        );
     }
 
     private static function appendCompliance(string $body, array $business): string
@@ -116,7 +157,7 @@ final class Mailer
         return implode("\n\n", $parts);
     }
 
-    private static function logMail(string $toEmail, string $toName, string $subject, string $body, array $business): array
+    private static function logMail(string $toEmail, string $toName, string $subject, string $body, array $business, array $base): array
     {
         $dir = APP_ROOT . '/storage/mail';
         if (!is_dir($dir)) {
@@ -133,18 +174,14 @@ final class Mailer
         $message .= "Subject: {$subject}\n\n{$body}\n";
         file_put_contents($file, $message);
 
-        return ['sent' => true, 'error' => null, 'reference' => basename($file)];
+        return self::mergeResult($base, ['sent' => true, 'error' => null, 'reference' => basename($file)]);
     }
 
-    private static function sendBrevoApi(string $toEmail, string $toName, string $subject, string $body, array $business): array
+    private static function sendBrevoApi(string $toEmail, string $toName, string $subject, string $body, array $business, array $base): array
     {
-        $apiKey = trim((string) app_config('mail_api_key', ''));
-        if ($apiKey === '') {
-            return ['sent' => false, 'error' => 'Brevo API key missing from environment variable MAIL_API_KEY', 'reference' => null];
-        }
-
-        if (!function_exists('curl_init')) {
-            return ['sent' => false, 'error' => 'cURL is required for Brevo API sending.', 'reference' => null];
+        $validation = self::validateBrevoSend($business, $toEmail, $base['provider']);
+        if ($validation !== null) {
+            return self::mergeResult($base, $validation);
         }
 
         $payload = [
@@ -167,12 +204,27 @@ final class Mailer
         }
 
         $result = self::sendBrevoRequest('/smtp/email', 'POST', $payload);
+        $reference = self::extractBrevoReference($result['decoded']);
         if ($result['ok']) {
-            $reference = self::extractBrevoReference($result['decoded']);
-            return ['sent' => true, 'error' => null, 'reference' => $reference];
+            return self::mergeResult($base, [
+                'sent' => true,
+                'error' => null,
+                'reference' => $reference,
+                'status' => $result['status'],
+                'response_message' => $result['message'],
+                'response_body' => $result['response_body'],
+            ]);
         }
 
-        return ['sent' => false, 'error' => $result['message'], 'reference' => null];
+        return self::mergeResult($base, [
+            'sent' => false,
+            'error' => $result['message'],
+            'reference' => $reference,
+            'status' => $result['status'],
+            'response_message' => $result['message'],
+            'response_body' => $result['response_body'],
+            'curl_error' => $result['curl_error'],
+        ]);
     }
 
     public static function testBrevoConnection(): array
@@ -199,6 +251,7 @@ final class Mailer
             'success' => $result['ok'],
             'status' => $result['status'],
             'message' => $result['ok'] ? ($result['message'] !== '' ? $result['message'] : 'Brevo API connection successful.') : $result['message'],
+            'response_body' => $result['response_body'],
         ];
     }
 
@@ -252,6 +305,8 @@ final class Mailer
                 'status' => null,
                 'message' => 'Brevo API key missing from environment variable MAIL_API_KEY',
                 'decoded' => null,
+                'response_body' => null,
+                'curl_error' => null,
             ];
         }
 
@@ -291,11 +346,14 @@ final class Mailer
                 'status' => null,
                 'message' => $message,
                 'decoded' => null,
+                'response_body' => null,
+                'curl_error' => $curlError !== '' ? $curlError : 'request failed',
             ];
         }
 
         $decoded = json_decode((string) $responseBody, true);
         $safeMessage = self::extractBrevoErrorMessage($decoded);
+        $safeBody = self::safeResponseBody($decoded, (string) $responseBody);
 
         if ($status >= 200 && $status < 300) {
             $message = self::extractBrevoSuccessMessage($decoded);
@@ -304,6 +362,8 @@ final class Mailer
                 'status' => $status,
                 'message' => $message,
                 'decoded' => $decoded,
+                'response_body' => $safeBody,
+                'curl_error' => null,
             ];
         }
 
@@ -314,6 +374,8 @@ final class Mailer
             'status' => $status,
             'message' => $message,
             'decoded' => $decoded,
+            'response_body' => $safeBody,
+            'curl_error' => null,
         ];
     }
 
@@ -330,5 +392,90 @@ final class Mailer
         }
 
         return '';
+    }
+
+    private static function validateBrevoSend(array $business, string $toEmail, string $provider): ?array
+    {
+        if ($provider !== 'brevo_api') {
+            return ['sent' => false, 'error' => 'MAIL_PROVIDER must be brevo_api for Brevo API sending.'];
+        }
+
+        $senderName = trim((string) ($business['sender_name'] ?? ''));
+        if ($senderName === '') {
+            return ['sent' => false, 'error' => 'MAIL_FROM_NAME is required for Brevo API sending.'];
+        }
+
+        $senderEmail = trim((string) ($business['sender_email'] ?? ''));
+        if ($senderEmail === '') {
+            return ['sent' => false, 'error' => 'MAIL_FROM_EMAIL is required for Brevo API sending.'];
+        }
+
+        if (!filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['sent' => false, 'error' => 'MAIL_FROM_EMAIL must be a valid email address for Brevo API sending.'];
+        }
+
+        if (trim($toEmail) === '') {
+            return ['sent' => false, 'error' => 'Recipient email is required for Brevo API sending.'];
+        }
+
+        if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['sent' => false, 'error' => 'Recipient email must be a valid email address for Brevo API sending.'];
+        }
+
+        if (trim((string) app_config('mail_api_key', '')) === '') {
+            return ['sent' => false, 'error' => 'Brevo API key missing from environment variable MAIL_API_KEY'];
+        }
+
+        if (!function_exists('curl_init')) {
+            return ['sent' => false, 'error' => 'cURL is required for Brevo API sending.'];
+        }
+
+        return null;
+    }
+
+    private static function safeResponseBody(mixed $decoded, string $raw): ?string
+    {
+        if (is_array($decoded)) {
+            $safe = [];
+            foreach (['message', 'code', 'error', 'messageId', 'message_id', 'requestId'] as $key) {
+                if (isset($decoded[$key]) && is_scalar($decoded[$key])) {
+                    $safe[$key] = (string) $decoded[$key];
+                }
+            }
+
+            if ($safe !== []) {
+                return json_encode($safe, JSON_UNESCAPED_SLASHES);
+            }
+        }
+
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        return mb_substr($raw, 0, 500);
+    }
+
+    private static function baseResultContext(string $provider, array $business, string $recipientEmail): array
+    {
+        return [
+            'sent' => false,
+            'error' => null,
+            'reference' => null,
+            'provider' => $provider,
+            'status' => null,
+            'response_message' => null,
+            'response_body' => null,
+            'curl_error' => null,
+            'sender_email' => (string) ($business['sender_email'] ?? ''),
+            'recipient_email' => $recipientEmail,
+            'business_profile_id' => (int) ($business['id'] ?? 0),
+            'business_name' => (string) ($business['brand_name'] ?? $business['business_name'] ?? ''),
+        ];
+    }
+
+    private static function mergeResult(array $base, array $overrides): array
+    {
+        return array_merge($base, $overrides);
     }
 }

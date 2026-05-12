@@ -27,6 +27,10 @@ foreach (['sender_email', 'reply_to_email', 'admin_notification_email'] as $emai
     }
 }
 
+if (!valid_timezone_name($business['timezone'])) {
+    $errors[] = 'Timezone must be a valid IANA timezone.';
+}
+
 foreach (['primary_color', 'secondary_color', 'accent_color'] as $colorField) {
     if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $business[$colorField])) {
         $errors[] = str_replace('_', ' ', ucfirst($colorField)) . ' must be a hex color.';

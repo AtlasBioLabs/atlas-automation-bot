@@ -44,8 +44,10 @@ if ($campaignName !== '') {
     $params[] = "%{$campaignName}%";
 }
 if ($scheduledDate !== '') {
-    $where[] = 'DATE(q.scheduled_at) = ?';
-    $params[] = $scheduledDate;
+    [$scheduledStartUtc, $scheduledEndUtc] = app_local_day_bounds_utc($scheduledDate, $businessId);
+    $where[] = 'q.scheduled_at >= ? AND q.scheduled_at < ?';
+    $params[] = $scheduledStartUtc;
+    $params[] = $scheduledEndUtc;
 }
 
 $stmt = Database::pdo()->prepare(
@@ -97,9 +99,9 @@ render_header('Email Queue');
           <td><a href="/leads/edit.php?id=<?= e($row['lead_id']) ?>"><?= e($row['contact_name'] ?: $row['email']) ?></a></td>
           <td><?= e($row['company_name']) ?></td>
           <td><?= e($row['template_name'] ?: 'Missing/inactive template') ?></td>
-          <td><?= e($row['scheduled_at']) ?></td>
+          <td><?= e(format_app_datetime($row['scheduled_at'], $businessId)) ?></td>
           <td><?= badge_status($row['status']) ?></td>
-          <td><?= e($row['sent_at']) ?></td>
+          <td><?= e(format_app_datetime($row['sent_at'], $businessId)) ?></td>
           <td class="small"><?= e($row['error_message']) ?></td>
           <td class="text-end">
             <?php if ($row['status'] === 'pending'): ?>

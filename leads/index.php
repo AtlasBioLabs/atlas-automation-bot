@@ -60,12 +60,14 @@ if ($followupStage !== '') {
     $params[] = $followupStage;
 }
 if ($createdFrom !== '') {
-    $where[] = 'DATE(created_at) >= ?';
-    $params[] = $createdFrom;
+    [$startUtc,] = app_local_day_bounds_utc($createdFrom, $businessId);
+    $where[] = 'created_at >= ?';
+    $params[] = $startUtc;
 }
 if ($createdTo !== '') {
-    $where[] = 'DATE(created_at) <= ?';
-    $params[] = $createdTo;
+    [, $endUtc] = app_local_day_bounds_utc($createdTo, $businessId);
+    $where[] = 'created_at < ?';
+    $params[] = $endUtc;
 }
 $sql = 'SELECT * FROM leads WHERE ' . implode(' AND ', $where) . ' ORDER BY updated_at DESC LIMIT 200';
 $stmt = $pdo->prepare($sql);
@@ -108,7 +110,7 @@ render_header('Leads');
       <div class="col-md-3"><label class="form-label">Bulk action</label><select class="form-select" name="bulk_action"><option value="queue_selected">Queue Email to Selected Leads</option></select></div>
       <div class="col-md-3"><label class="form-label">Campaign name</label><input class="form-control" name="campaign_name" value="Selected leads campaign"></div>
       <div class="col-md-2"><label class="form-label">Template</label><select class="form-select" name="template_id" required><option value="">Template</option><?php foreach ($templates as $template): ?><option value="<?= e($template['id']) ?>"><?= e($template['name']) ?></option><?php endforeach; ?></select></div>
-      <div class="col-md-2"><label class="form-label">Schedule</label><input class="form-control" type="datetime-local" name="scheduled_at" value="<?= e(date('Y-m-d\TH:i')) ?>"></div>
+      <div class="col-md-2"><label class="form-label">Schedule</label><input class="form-control" type="datetime-local" name="scheduled_at" value="<?= e(app_local_input_value(null, $businessId)) ?>"></div>
       <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Preview Selected</button></div>
     </div>
   </div>
@@ -125,7 +127,7 @@ render_header('Leads');
           <td><?= e($lead['email']) ?></td>
           <td><?= e($lead['category']) ?></td>
           <td><?= badge_status($lead['status']) ?></td>
-          <td><?= e($lead['next_followup_at']) ?></td>
+          <td><?= e(format_app_datetime($lead['next_followup_at'], $businessId)) ?></td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="/leads/edit.php?id=<?= e($lead['id']) ?>">Edit</a>
           </td>

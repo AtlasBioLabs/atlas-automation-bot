@@ -82,9 +82,174 @@ function app_url(string $path = ''): string
     return $base . '/' . ltrim($path, '/');
 }
 
+function valid_timezone_name(string $timezone): bool
+{
+    try {
+        new DateTimeZone($timezone);
+        return true;
+    } catch (Throwable) {
+        return false;
+    }
+}
+
+function timezone_choices(): array
+{
+    static $choices = null;
+    if (is_array($choices)) {
+        return $choices;
+    }
+
+    $preferred = [
+        'Africa/Douala',
+        'Africa/Lagos',
+        'Africa/Cairo',
+        'America/New_York',
+        'America/Chicago',
+        'America/Los_Angeles',
+        'Europe/London',
+        'Europe/Paris',
+        'Asia/Dubai',
+        'Asia/Singapore',
+    ];
+
+    $all = DateTimeZone::listIdentifiers();
+    $choices = array_values(array_unique(array_merge($preferred, $all)));
+    sort($choices);
+
+    if (($key = array_search('Africa/Douala', $choices, true)) !== false) {
+        unset($choices[$key]);
+        array_unshift($choices, 'Africa/Douala');
+        $choices = array_values($choices);
+    }
+
+    return $choices;
+}
+
+function app_timezone(?int $businessProfileId = null): string
+{
+    $fallback = (string) app_config('app_timezone', 'Africa/Douala');
+
+    if ($businessProfileId !== null && class_exists(BusinessProfile::class)) {
+        $business = BusinessProfile::find($businessProfileId);
+        $timezone = trim((string) ($business['timezone'] ?? ''));
+        return valid_timezone_name($timezone) ? $timezone : $fallback;
+    }
+
+    if (PHP_SAPI !== 'cli') {
+        start_app_session();
+        $sessionBusinessId = (int) ($_SESSION['business_profile_id'] ?? 0);
+        if ($sessionBusinessId > 0 && class_exists(BusinessProfile::class)) {
+            $business = BusinessProfile::find($sessionBusinessId);
+            $timezone = trim((string) ($business['timezone'] ?? ''));
+            if (valid_timezone_name($timezone)) {
+                return $timezone;
+            }
+        }
+    }
+
+    return $fallback;
+}
+
+function app_utc_now(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', new DateTimeZone('UTC'));
+}
+
+function app_now(?int $businessProfileId = null): DateTimeImmutable
+{
+    return app_utc_now()->setTimezone(new DateTimeZone(app_timezone($businessProfileId)));
+}
+
+function app_datetime_to_utc(DateTimeInterface|string|null $datetime, ?int $businessProfileId = null): ?DateTimeImmutable
+{
+    if ($datetime === null || $datetime === '') {
+        return null;
+    }
+
+    if ($datetime instanceof DateTimeInterface) {
+        return DateTimeImmutable::createFromInterface($datetime)->setTimezone(new DateTimeZone('UTC'));
+    }
+
+    $timezone = new DateTimeZone(app_timezone($businessProfileId));
+    $hasExplicitTimezone = (bool) preg_match('/(?:Z|[+\-]\d{2}:\d{2})$/', trim($datetime));
+    $parsed = $hasExplicitTimezone
+        ? new DateTimeImmutable($datetime)
+        : new DateTimeImmutable($datetime, $timezone);
+
+    return $parsed->setTimezone(new DateTimeZone('UTC'));
+}
+
+function utc_to_app_datetime(DateTimeInterface|string|null $datetime, ?int $businessProfileId = null): ?DateTimeImmutable
+{
+    if ($datetime === null || $datetime === '') {
+        return null;
+    }
+
+    if ($datetime instanceof DateTimeInterface) {
+        $utc = DateTimeImmutable::createFromInterface($datetime)->setTimezone(new DateTimeZone('UTC'));
+    } else {
+        $hasExplicitTimezone = (bool) preg_match('/(?:Z|[+\-]\d{2}:\d{2})$/', trim($datetime));
+        $utc = $hasExplicitTimezone
+            ? new DateTimeImmutable($datetime)
+            : new DateTimeImmutable($datetime, new DateTimeZone('UTC'));
+        $utc = $utc->setTimezone(new DateTimeZone('UTC'));
+    }
+
+    return $utc->setTimezone(new DateTimeZone(app_timezone($businessProfileId)));
+}
+
+function format_app_datetime(DateTimeInterface|string|null $datetime, ?int $businessProfileId = null, string $format = 'Y-m-d H:i:s'): string
+{
+    $local = utc_to_app_datetime($datetime, $businessProfileId);
+    return $local ? $local->format($format) : '';
+}
+
+function app_local_input_value(DateTimeInterface|string|null $datetime = null, ?int $businessProfileId = null): string
+{
+    if ($datetime === null || $datetime === '') {
+        return app_now($businessProfileId)->format('Y-m-d\TH:i');
+    }
+
+    return format_app_datetime($datetime, $businessProfileId, 'Y-m-d\TH:i');
+}
+
+function app_local_day_bounds_utc(string $date, ?int $businessProfileId = null): array
+{
+    $timezone = new DateTimeZone(app_timezone($businessProfileId));
+    $startLocal = new DateTimeImmutable($date . ' 00:00:00', $timezone);
+    $endLocal = $startLocal->modify('+1 day');
+
+    return [
+        $startLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+        $endLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+    ];
+}
+
+function app_current_day_bounds_utc(?int $businessProfileId = null): array
+{
+    $startLocal = app_now($businessProfileId)->setTime(0, 0, 0);
+    $endLocal = $startLocal->modify('+1 day');
+
+    return [
+        $startLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+        $endLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+    ];
+}
+
+function app_tomorrow_day_bounds_utc(?int $businessProfileId = null): array
+{
+    $startLocal = app_now($businessProfileId)->setTime(0, 0, 0)->modify('+1 day');
+    $endLocal = $startLocal->modify('+1 day');
+
+    return [
+        $startLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+        $endLocal->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+    ];
+}
+
 function now_sql(): string
 {
-    return (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+    return app_utc_now()->format('Y-m-d H:i:s');
 }
 
 function default_lead_categories(): array

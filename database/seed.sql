@@ -15,7 +15,7 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `business_profiles` WRITE;
 /*!40000 ALTER TABLE `business_profiles` DISABLE KEYS */;
 INSERT IGNORE INTO `business_profiles` VALUES
-(1,'Atlas BioLabs','Atlas BioLabs','Peptide sourcing support for qualified B2B buyers','Peptide supply and sourcing','Atlas BioLabs','no-reply@example.com','','admin@example.com','Business address placeholder','','','#0A1A2F','#FFFFFF','#2E6BFF','You are receiving this professional B2B email from Atlas BioLabs. This message is intended for qualified business sourcing conversations. No medical or human-use claims are made. You can unsubscribe using the link included in this email.','Atlas BioLabs\nPeptide sourcing support, MOQ flexibility, documentation support, batch transparency, and supply coordination.\nBusiness address placeholder',30,'UTC',1,'2026-05-12 04:53:36','2026-05-12 04:53:36');
+(1,'Atlas BioLabs','Atlas BioLabs','Peptide sourcing support for qualified B2B buyers','Peptide supply and sourcing','Atlas BioLabs','no-reply@example.com','','admin@example.com','Business address placeholder','','','#0A1A2F','#FFFFFF','#2E6BFF','You are receiving this professional B2B email from Atlas BioLabs. This message is intended for qualified business sourcing conversations. No medical or human-use claims are made. You can unsubscribe using the link included in this email.','Atlas BioLabs\nPeptide sourcing support, MOQ flexibility, documentation support, batch transparency, and supply coordination.\nBusiness address placeholder',30,'Africa/Douala',1,'2026-05-12 04:53:36','2026-05-12 04:53:36');
 /*!40000 ALTER TABLE `business_profiles` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
