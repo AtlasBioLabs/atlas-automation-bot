@@ -234,7 +234,12 @@ final class Mailer
             return $html;
         }
 
-        return $html . '<div style="margin-top:24px;border-top:1px solid #D9DEE6;padding-top:18px;">' . $footerBlock . '</div>';
+        $block = '<div style="margin-top:24px;border-top:1px solid #D9DEE6;padding-top:18px;">' . $footerBlock . '</div>';
+        if (stripos($html, '</body>') !== false) {
+            return preg_replace('/<\/body>/i', $block . '</body>', $html, 1) ?? ($html . $block);
+        }
+
+        return $html . $block;
     }
 
     private static function logMail(string $toEmail, string $toName, string $subject, string $htmlBody, string $textBody, string $preheader, array $business, array $base): array
