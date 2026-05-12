@@ -33,6 +33,8 @@ final class Mailer
             '{{website_url}}' => $business['website_url'] ?? '',
             '{{business_logo_url}}' => $business['logo_url'] ?? '',
             '{{sender_name}}' => $business['sender_name'] ?? '',
+            '{{sender_email}}' => $business['sender_email'] ?? '',
+            '{{reply_to_email}}' => ($business['reply_to_email'] ?? '') !== '' ? ($business['reply_to_email'] ?? '') : ($business['sender_email'] ?? ''),
             '{{business_address}}' => $business['business_address'] ?? '',
             '{{default_signature}}' => $business['default_signature'] ?? '',
             '{{compliance_footer}}' => $business['compliance_footer'] ?? '',
@@ -57,17 +59,22 @@ final class Mailer
             ? strtr((string) $template['body_text'], $variables)
             : $legacyBody;
         $htmlSource = trim((string) ($template['body_html'] ?? ''));
+        $htmlNeedsFooter = false;
         if ($htmlSource !== '') {
             $renderedHtmlSource = strtr($htmlSource, $variables);
-            $htmlBody = preg_match('/<(?:html|body|table)\b/i', $renderedHtmlSource)
+            $isFullHtml = (bool) preg_match('/<(?:html|body|table)\b/i', $renderedHtmlSource);
+            $htmlBody = $isFullHtml
                 ? $renderedHtmlSource
                 : self::wrapHtmlTemplate($subject, $preheader, $renderedHtmlSource, $business, $variables);
+            $htmlNeedsFooter = $isFullHtml;
         } else {
             $htmlBody = self::wrapHtmlTemplate($subject, $preheader, nl2br(e($textBody)), $business, $variables);
         }
 
         $textBody = self::appendCompliance($textBody, $business);
-        $htmlBody = self::appendComplianceHtml($htmlBody, $business);
+        if ($htmlNeedsFooter) {
+            $htmlBody = self::appendComplianceHtml($htmlBody, $business);
+        }
         $missing = self::missingVariables([$subject, $preheader, $textBody, $htmlBody]);
 
         return [
@@ -577,32 +584,99 @@ final class Mailer
         $website = trim((string) ($business['website_url'] ?? ''));
         $primary = trim((string) ($business['primary_color'] ?? '#0A1A2F'));
         $accent = trim((string) ($business['accent_color'] ?? '#2E6BFF'));
+        $secondary = trim((string) ($business['secondary_color'] ?? '#FFFFFF'));
         $signature = nl2br(e((string) ($variables['{{default_signature}}'] ?? '')));
         $unsubscribe = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
         $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? ''));
+        $supportEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? ''));
+        $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Professional business communication for qualified sourcing conversations.'));
 
         $logoMarkup = $logo !== ''
-            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:180px;height:auto;border:0;">'
-            : '<div style="font-size:24px;font-weight:700;color:' . e($primary) . ';">' . e($brand) . '</div>';
+            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:210px;width:100%;height:auto;border:0;">'
+            : '<div style="font-size:28px;font-weight:700;line-height:34px;color:' . e($secondary) . ';letter-spacing:0;">' . e($brand) . '</div>';
 
-        $ctaMarkup = $website !== ''
-            ? '<tr><td style="padding:0 36px 28px;"><a href="' . e($website) . '" style="display:inline-block;background:' . e($accent) . ';color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;">Visit ' . e($brand) . '</a></td></tr>'
+        $secondaryCtaMarkup = $website !== ''
+            ? '<a href="' . e($website) . '" style="color:' . e($accent) . ';text-decoration:none;font-weight:600;">View company profile</a>'
             : '';
         $unsubscribeMarkup = ($unsubscribe !== '' && $unsubscribeText !== '')
             ? '<p style="margin:12px 0 0;color:#5B6B7E;font-size:12px;line-height:18px;">' . e($unsubscribeText) . ' <a href="' . e($unsubscribe) . '" style="color:' . e($accent) . ';">Unsubscribe</a></p>'
             : '';
+        $headerPill = '<span style="display:inline-block;background:#113158;border:1px solid rgba(255,255,255,0.12);color:#D6E5FF;padding:8px 13px;border-radius:999px;font-size:12px;line-height:12px;font-weight:700;letter-spacing:0.2px;">' . e($brand) . '</span>';
+        $trustRows = [
+            ['title' => 'MOQ flexibility', 'copy' => 'Structured conversations around quantity planning and commercial fit.'],
+            ['title' => 'Documentation support', 'copy' => 'Business-ready follow-up for specification and review workflows.'],
+            ['title' => 'Batch transparency', 'copy' => 'Clear sourcing communication with practical next steps.'],
+        ];
+        $trustMarkup = '';
+        foreach ($trustRows as $row) {
+            $trustMarkup .= '<td width="33.33%" valign="top" style="padding:0 10px 0 0;">'
+                . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#112949;border:1px solid #1E4068;border-radius:16px;"><tr><td style="padding:16px 16px 15px;">'
+                . '<div style="width:34px;height:34px;background:' . e($accent) . ';border-radius:12px;font-size:0;line-height:0;">&nbsp;</div>'
+                . '<div style="margin-top:14px;font-size:14px;line-height:20px;font-weight:700;color:#FFFFFF;">' . e($row['title']) . '</div>'
+                . '<div style="margin-top:6px;font-size:12px;line-height:19px;color:#AFC1D7;">' . e($row['copy']) . '</div>'
+                . '</td></tr></table>'
+                . '</td>';
+        }
 
         return '<!doctype html><html><body style="margin:0;padding:0;background:#F4F7FB;">'
-            . '<div style="display:none;max-height:0;overflow:hidden;opacity:0;">' . e($preheader) . '</div>'
-            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F4F7FB;"><tr><td align="center" style="padding:24px 12px;">'
-            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#FFFFFF;border:1px solid #D9DEE6;border-radius:8px;overflow:hidden;">'
-            . '<tr><td style="background:' . e($primary) . ';padding:28px 36px;">' . $logoMarkup
-            . ($tagline !== '' ? '<div style="margin-top:8px;color:#C7CED6;font-size:14px;line-height:20px;">' . e($tagline) . '</div>' : '')
+            . '<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">' . e($preheader) . '</div>'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F4F7FB;"><tr><td align="center" style="padding:28px 12px 40px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:660px;">'
+            . '<tr><td style="padding-bottom:18px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:' . e($primary) . ';border:1px solid #163257;border-radius:24px;overflow:hidden;">'
+            . '<tr><td style="height:4px;background:' . e($accent) . ';font-size:0;line-height:0;">&nbsp;</td></tr>'
+            . '<tr><td style="padding:22px 30px 0;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
+            . '<td valign="middle">' . $headerPill . '</td>'
+            . '<td align="right" valign="middle" style="font-size:12px;line-height:18px;color:#9CB3CE;">' . ($website !== '' ? '<a href="' . e($website) . '" style="color:#CFE0FF;text-decoration:none;">' . e(preg_replace('#^https?://#', '', $website) ?? $website) . '</a>' : 'Qualified B2B sourcing communication') . '</td>'
+            . '</tr></table>'
             . '</td></tr>'
-            . '<tr><td style="padding:32px 36px 20px;"><h1 style="margin:0 0 16px;color:#102033;font-size:24px;line-height:32px;">' . e($subject) . '</h1>'
-            . '<div style="color:#243548;font-size:15px;line-height:24px;">' . $bodyHtml . '</div></td></tr>'
-            . $ctaMarkup
-            . '<tr><td style="padding:0 36px 24px;"><div style="color:#243548;font-size:14px;line-height:22px;">' . $signature . '</div>' . $unsubscribeMarkup . '</td></tr>'
+            . '<tr><td style="padding:20px 30px 12px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
+            . '<td valign="top" style="padding:0 24px 0 0;">' . $logoMarkup . '</td>'
+            . '<td valign="top" width="100%">'
+            . ($tagline !== '' ? '<div style="font-size:13px;line-height:20px;color:#AFC1D7;font-weight:600;letter-spacing:0.2px;">' . e($tagline) . '</div>' : '')
+            . '<div style="margin-top:10px;font-size:31px;line-height:38px;font-weight:700;color:#FFFFFF;letter-spacing:0;">' . e($subject) . '</div>'
+            . '<div style="margin-top:12px;font-size:16px;line-height:25px;color:#D8E5F5;max-width:470px;">' . e($subheadline) . '</div>'
+            . '</td>'
+            . '</tr></table>'
+            . '</td></tr>'
+            . '<tr><td style="padding:14px 30px 28px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
+            . $trustMarkup
+            . '</tr></table>'
+            . '</td></tr>'
+            . '</table>'
+            . '</td></tr>'
+            . '<tr><td>'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#FFFFFF;border:1px solid #DCE6F2;border-radius:22px;overflow:hidden;box-shadow:0 12px 36px rgba(10,26,47,0.06);">'
+            . '<tr><td style="padding:10px 32px 0;"><div style="height:1px;background:#E8EEF5;font-size:0;line-height:0;">&nbsp;</div></td></tr>'
+            . '<tr><td style="padding:30px 32px 12px;color:#243548;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:26px;">' . $bodyHtml . '</td></tr>'
+            . '<tr><td style="padding:0 32px 30px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F7FAFD;border:1px solid #DCE6F2;border-radius:18px;"><tr>'
+            . '<td style="padding:18px 20px;">'
+            . '<div style="font-size:13px;line-height:18px;font-weight:700;color:#0A1A2F;text-transform:uppercase;letter-spacing:0.2px;">Direct response path</div>'
+            . '<div style="margin-top:6px;font-size:14px;line-height:22px;color:#526173;">Reply directly to this email'
+            . ($supportEmail !== '' ? ' at <a href="mailto:' . e($supportEmail) . '" style="color:' . e($accent) . ';text-decoration:none;">' . e($supportEmail) . '</a>' : '')
+            . ($secondaryCtaMarkup !== '' ? ' or ' . $secondaryCtaMarkup . '.' : '.') . '</div>'
+            . '</td></tr></table>'
+            . '</td></tr>'
+            . '<tr><td style="padding:0 32px 28px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #E1E8F1;"><tr>'
+            . '<td style="padding-top:18px;font-size:14px;line-height:22px;color:#243548;">' . $signature . '</td>'
+            . '</tr></table>'
+            . '</td></tr>'
+            . '</table>'
+            . '</td></tr>'
+            . '<tr><td style="padding-top:16px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#EEF4FA;border:1px solid #D9E4F1;border-radius:20px;"><tr><td style="padding:22px 24px;">'
+            . '<div style="font-size:12px;line-height:18px;font-weight:700;color:#0A1A2F;">' . e($brand) . '</div>'
+            . ($tagline !== '' ? '<div style="margin-top:4px;font-size:12px;line-height:19px;color:#5B6B7E;">' . e($tagline) . '</div>' : '')
+            . '<div style="margin-top:10px;font-size:12px;line-height:19px;color:#5B6B7E;">' . nl2br(e((string) ($business['business_address'] ?? ''))) . '</div>'
+            . '<div style="margin-top:12px;font-size:12px;line-height:19px;color:#5B6B7E;">' . nl2br(e((string) ($business['compliance_footer'] ?? ''))) . '</div>'
+            . $unsubscribeMarkup
+            . '</td></tr></table>'
+            . '</td></tr>'
             . '</table></td></tr></table></body></html>';
     }
 
