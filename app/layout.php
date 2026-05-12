@@ -65,6 +65,7 @@ function render_header(string $title): void
       <a class="sidebar-link" href="/rfqs/index.php">RFQs</a>
       <a class="sidebar-link" href="/reports/index.php">Reports</a>
       <a class="sidebar-link" href="/settings.php">Settings</a>
+      <a class="sidebar-link" href="/tools/mail_diagnostics.php">Mail Diagnostics</a>
     </aside>
     <main class="col-md-9 col-lg-10 p-4">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">

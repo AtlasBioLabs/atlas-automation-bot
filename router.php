@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$allowedDynamicFiles = [
+    '/tools/mail_diagnostics.php',
+];
 $blocked = [
     '/.env',
     '/.env.example',
@@ -15,6 +18,13 @@ $blocked = [
     '/composer.json',
     '/composer.lock',
 ];
+
+if (in_array($path, $allowedDynamicFiles, true)) {
+    $file = __DIR__ . str_replace('/', DIRECTORY_SEPARATOR, $path);
+    if (is_file($file)) {
+        return false;
+    }
+}
 
 foreach ($blocked as $prefix) {
     if ($path === rtrim($prefix, '/') || str_starts_with($path, $prefix)) {

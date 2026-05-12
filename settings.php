@@ -146,7 +146,7 @@ render_header('Settings');
     <div class="card shadow-sm"><div class="card-body row g-3">
       <h2 class="h5">Provider Test</h2>
       <?php if ($testErrors): ?><div class="col-12"><div class="alert alert-danger mb-0"><?= e(implode(' ', $testErrors)) ?></div></div><?php endif; ?>
-      <div class="col-12"><div class="alert alert-warning small mb-0">This sends one direct provider connectivity test email only. It does not queue a campaign or contact leads in bulk. Save settings first if you want to test the latest provider selection.</div></div>
+      <div class="col-12"><div class="alert alert-warning small mb-0">This sends one direct provider connectivity test email only. It does not queue a campaign or contact leads in bulk. Save settings first if you want to test the latest provider selection. For provider health and Brevo account checks, use <a href="/tools/mail_diagnostics.php" class="alert-link">Mail Diagnostics</a>.</div></div>
       <div class="col-md-8"><label class="form-label">Test email recipient</label><input class="form-control" type="email" name="test_email" value="<?= e($testEmail) ?>" placeholder="you@example.com"></div>
       <div class="col-md-4 d-flex align-items-end">
         <button class="btn btn-outline-primary w-100" type="submit" name="action" value="send_test_email">Send test email</button>

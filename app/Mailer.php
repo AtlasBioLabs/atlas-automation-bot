@@ -9,6 +9,8 @@ require_once __DIR__ . '/Settings.php';
 
 final class Mailer
 {
+    private const BREVO_API_BASE = 'https://api.brevo.com/v3';
+
     public static function render(string $content, array $lead = [], ?array $business = null): string
     {
         $business ??= isset($lead['business_profile_id']) ? BusinessProfile::find((int) $lead['business_profile_id']) : BusinessProfile::current();
@@ -164,40 +166,39 @@ final class Mailer
             $payload['replyTo'] = ['email' => $replyTo];
         }
 
-        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'accept: application/json',
-                'api-key: ' . $apiKey,
-                'content-type: application/json',
-            ],
-            CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
-            CURLOPT_TIMEOUT => 20,
-            CURLOPT_CONNECTTIMEOUT => 10,
-        ]);
-
-        $responseBody = curl_exec($ch);
-        $curlError = curl_error($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
-
-        if ($responseBody === false) {
-            return ['sent' => false, 'error' => 'Brevo API request failed: ' . $curlError, 'reference' => null];
-        }
-
-        $decoded = json_decode((string) $responseBody, true);
-        $reference = self::extractBrevoReference($decoded);
-        if ($status >= 200 && $status < 300) {
+        $result = self::sendBrevoRequest('/smtp/email', 'POST', $payload);
+        if ($result['ok']) {
+            $reference = self::extractBrevoReference($result['decoded']);
             return ['sent' => true, 'error' => null, 'reference' => $reference];
         }
 
-        $safeMessage = self::extractBrevoErrorMessage($decoded);
+        return ['sent' => false, 'error' => $result['message'], 'reference' => null];
+    }
+
+    public static function testBrevoConnection(): array
+    {
+        $apiKey = trim((string) app_config('mail_api_key', ''));
+        if ($apiKey === '') {
+            return [
+                'success' => false,
+                'status' => null,
+                'message' => 'Brevo API key missing from environment variable MAIL_API_KEY',
+            ];
+        }
+
+        if (!function_exists('curl_init')) {
+            return [
+                'success' => false,
+                'status' => null,
+                'message' => 'cURL is required for Brevo API sending.',
+            ];
+        }
+
+        $result = self::sendBrevoRequest('/account', 'GET');
         return [
-            'sent' => false,
-            'error' => trim("Brevo API HTTP {$status}" . ($safeMessage !== '' ? ': ' . $safeMessage : '')),
-            'reference' => $reference,
+            'success' => $result['ok'],
+            'status' => $result['status'],
+            'message' => $result['ok'] ? ($result['message'] !== '' ? $result['message'] : 'Brevo API connection successful.') : $result['message'],
         ];
     }
 
@@ -234,6 +235,95 @@ final class Mailer
         }
 
         foreach (['message', 'code', 'error'] as $key) {
+            if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
+                return (string) $decoded[$key];
+            }
+        }
+
+        return '';
+    }
+
+    private static function sendBrevoRequest(string $path, string $method, ?array $payload = null): array
+    {
+        $apiKey = trim((string) app_config('mail_api_key', ''));
+        if ($apiKey === '') {
+            return [
+                'ok' => false,
+                'status' => null,
+                'message' => 'Brevo API key missing from environment variable MAIL_API_KEY',
+                'decoded' => null,
+            ];
+        }
+
+        $url = rtrim(self::BREVO_API_BASE, '/') . $path;
+        $headers = [
+            'accept: application/json',
+            'api-key: ' . $apiKey,
+        ];
+
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_CONNECTTIMEOUT => 10,
+        ];
+
+        if ($method === 'POST') {
+            $options[CURLOPT_POST] = true;
+            $headers[] = 'content-type: application/json';
+            $options[CURLOPT_HTTPHEADER] = $headers;
+            $options[CURLOPT_POSTFIELDS] = json_encode($payload ?? [], JSON_UNESCAPED_SLASHES);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, $options);
+
+        $responseBody = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        if ($responseBody === false) {
+            $message = 'cURL error: ' . ($curlError !== '' ? $curlError : 'request failed');
+            error_log('[Mailer] ' . $message);
+            return [
+                'ok' => false,
+                'status' => null,
+                'message' => $message,
+                'decoded' => null,
+            ];
+        }
+
+        $decoded = json_decode((string) $responseBody, true);
+        $safeMessage = self::extractBrevoErrorMessage($decoded);
+
+        if ($status >= 200 && $status < 300) {
+            $message = self::extractBrevoSuccessMessage($decoded);
+            return [
+                'ok' => true,
+                'status' => $status,
+                'message' => $message,
+                'decoded' => $decoded,
+            ];
+        }
+
+        $message = trim('Brevo API returned HTTP ' . $status . ($safeMessage !== '' ? ': ' . $safeMessage : ''));
+        error_log('[Mailer] ' . $message);
+        return [
+            'ok' => false,
+            'status' => $status,
+            'message' => $message,
+            'decoded' => $decoded,
+        ];
+    }
+
+    private static function extractBrevoSuccessMessage(mixed $decoded): string
+    {
+        if (!is_array($decoded)) {
+            return '';
+        }
+
+        foreach (['message', 'messageId', 'message_id', 'requestId'] as $key) {
             if (!empty($decoded[$key]) && is_scalar($decoded[$key])) {
                 return (string) $decoded[$key];
             }

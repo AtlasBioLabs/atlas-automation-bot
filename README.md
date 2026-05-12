@@ -122,6 +122,8 @@ Set `MAIL_PROVIDER=brevo_api` on `/settings.php` and keep `MAIL_API_KEY` in `.en
 
 Railway Free/Hobby commonly blocks outbound SMTP connections. For Railway deployments, `brevo_api` is the recommended provider because it sends over HTTPS instead of SMTP.
 
+Use `/tools/mail_diagnostics.php` for a safe mail readiness check. It shows the active business mail settings, whether `MAIL_API_KEY` exists, whether cURL is enabled, and it can run a Brevo account connectivity check without sending a campaign.
+
 ## Settings
 
 Keep these in `.env`:
@@ -147,6 +149,8 @@ Control these from `/settings.php`:
 - one-off provider test email
 
 If `MAIL_PROVIDER=smtp`, sender name, sender email, SMTP host, SMTP port, and SMTP user are required. If `MAIL_PROVIDER=brevo_api`, sender name and sender email are required and `MAIL_API_KEY` must exist in `.env`. If `MAIL_PROVIDER=log`, SMTP credentials are not required.
+
+RFQ API token support reads `RFQ_API_TOKEN` first and also accepts `ATLAS_BOT_API_TOKEN` as a compatible alias for website-to-bot integrations.
 
 ## Campaign Queues
 
