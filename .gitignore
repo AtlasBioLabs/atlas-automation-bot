@@ -1,0 +1,4 @@
+vendor/
+.env
+storage/mail/*.eml
+storage/logs/*.log

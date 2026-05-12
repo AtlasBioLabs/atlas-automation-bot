@@ -1,0 +1,5 @@
+.env
+storage/mail/*
+database/backups/*
+node_modules
+vendor
