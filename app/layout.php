@@ -60,6 +60,7 @@ function render_header(string $title): void
       <a class="sidebar-link" href="/businesses/index.php">Businesses</a>
       <a class="sidebar-link" href="/leads/index.php">Leads</a>
       <a class="sidebar-link" href="/leads/import.php">CSV Import</a>
+      <a class="sidebar-link" href="/campaigns/index.php">Campaigns</a>
       <a class="sidebar-link" href="/templates/index.php">Templates</a>
       <a class="sidebar-link" href="/queue/index.php">Email Queue</a>
       <a class="sidebar-link" href="/rfqs/index.php">RFQs</a>
@@ -102,6 +103,7 @@ function badge_status(string $status): string
     $class = match ($status) {
         'sent', 'customer', 'interested', 'quoted' => 'success',
         'failed', 'bounced', 'unsubscribed', 'not_interested', 'complained', 'invalid' => 'danger',
+        'cancelled' => 'warning',
         'pending', 'queued', 'new' => 'secondary',
         default => 'primary',
     };

@@ -141,6 +141,14 @@ final class RfqService
             'category' => 'RFQ',
             'unsubscribe_token' => '',
         ];
-        Mailer::send($data['email'], $data['name'], Mailer::render($tpl['subject'], $leadForMail, $business), Mailer::render($tpl['body'], $leadForMail, $business), $business);
+        $render = Mailer::renderTemplate($tpl, $leadForMail, $business);
+        Mailer::send(
+            $data['email'],
+            $data['name'],
+            $render['subject'],
+            $render['text'],
+            $business,
+            ['html' => $render['html'], 'text' => $render['text'], 'preheader' => $render['preheader'], 'prepared' => true]
+        );
     }
 }

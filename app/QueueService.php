@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Mailer.php';
+require_once __DIR__ . '/LeadService.php';
 
 final class QueueService
 {
@@ -49,6 +50,7 @@ final class QueueService
 
         $sample = $eligible[0] ?? $leads[0] ?? null;
         $business = Settings::effectiveBusiness($businessProfileId) ?? BusinessProfile::find($businessProfileId);
+        $sampleRender = $sample ? Mailer::renderTemplate($template, $sample, $business) : ['subject' => '', 'preheader' => '', 'html' => '', 'text' => '', 'missing_variables' => [], 'variables' => []];
 
         return [
             'errors' => [],
@@ -61,8 +63,13 @@ final class QueueService
             'eligible_count' => count($eligible),
             'skipped_count' => count($skipped),
             'skipped_reason_counts' => $skippedReasonCounts,
-            'sample_subject' => $sample ? Mailer::render($template['subject'], $sample, $business) : '',
-            'sample_body' => $sample ? Mailer::render($template['body'], $sample, $business) : '',
+            'sample_lead' => $sample,
+            'sample_subject' => $sampleRender['subject'],
+            'sample_preheader' => $sampleRender['preheader'],
+            'sample_html' => $sampleRender['html'],
+            'sample_text' => $sampleRender['text'],
+            'sample_variables' => $sampleRender['variables'],
+            'missing_variables' => $sampleRender['missing_variables'],
         ];
     }
 
@@ -119,12 +126,41 @@ final class QueueService
 
             $queued = 0;
             $queue = $pdo->prepare(
-                'INSERT INTO email_queue (business_profile_id, campaign_id, campaign_name, lead_id, template_id, scheduled_at, status, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, "pending", NOW(), NOW())'
+                'INSERT INTO email_queue (business_profile_id, campaign_id, campaign_name, lead_id, template_id, rendered_subject, rendered_preheader, rendered_html, rendered_text, rendered_variables, scheduled_at, status, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "pending", NOW(), NOW())'
+            );
+            $skip = $pdo->prepare(
+                'INSERT INTO campaign_skips (business_profile_id, campaign_id, lead_id, lead_company_name, lead_contact_name, lead_email, reason, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW())'
             );
             foreach ($preview['eligible'] as $lead) {
-                $queue->execute([$businessProfileId, $campaignId, $campaignName, (int) $lead['id'], (int) $preview['template']['id'], $scheduledAt]);
+                $render = Mailer::renderTemplate($preview['template'], $lead, $preview['business']);
+                $queue->execute([
+                    $businessProfileId,
+                    $campaignId,
+                    $campaignName,
+                    (int) $lead['id'],
+                    (int) $preview['template']['id'],
+                    $render['subject'],
+                    $render['preheader'],
+                    $render['html'],
+                    $render['text'],
+                    json_encode($render['variables'], JSON_UNESCAPED_SLASHES),
+                    $scheduledAt,
+                ]);
                 $queued++;
+            }
+            foreach ($preview['skipped'] as $skippedLead) {
+                $lead = $skippedLead['lead'];
+                $skip->execute([
+                    $businessProfileId,
+                    $campaignId,
+                    (int) ($lead['id'] ?? 0) ?: null,
+                    $lead['company_name'] ?? null,
+                    $lead['contact_name'] ?? null,
+                    $lead['email'] ?? null,
+                    (string) $skippedLead['reason'],
+                ]);
             }
 
             $pdo->commit();
@@ -139,6 +175,7 @@ final class QueueService
     {
         $where = ['business_profile_id = ?'];
         $params = [$businessProfileId];
+        $where[] = LeadService::visibilityClause((string) ($filters['visibility'] ?? LeadService::VISIBILITY_ACTIVE));
 
         foreach (['status', 'category', 'country', 'source', 'followup_stage'] as $field) {
             $value = trim((string) ($filters[$field] ?? ''));
@@ -217,6 +254,7 @@ final class QueueService
             'followup_stage' => trim((string) ($filters['followup_stage'] ?? '')),
             'created_from' => trim((string) ($filters['created_from'] ?? '')),
             'created_to' => trim((string) ($filters['created_to'] ?? '')),
+            'visibility' => trim((string) ($filters['visibility'] ?? LeadService::VISIBILITY_ACTIVE)),
         ];
         $segmentId = (int) ($filters['segment_id'] ?? $input['segment_id'] ?? 0);
         if ($segmentId > 0 && $businessProfileId !== null) {
@@ -271,14 +309,9 @@ final class QueueService
 
     private static function skipReason(array $lead, int $templateId): ?string
     {
-        if ((bool) $lead['unsubscribed']) {
-            return 'unsubscribed';
-        }
-        if ((bool) $lead['bounced']) {
-            return 'bounced';
-        }
-        if (in_array($lead['status'], self::STOPPED_STATUSES, true)) {
-            return 'stopped_status';
+        $leadReason = LeadService::suppressionReason($lead);
+        if ($leadReason !== null) {
+            return $leadReason;
         }
 
         $stmt = Database::pdo()->prepare('SELECT id FROM email_queue WHERE business_profile_id = ? AND lead_id = ? AND template_id = ? AND status = "pending" LIMIT 1');

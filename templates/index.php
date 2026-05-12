@@ -15,16 +15,23 @@ render_header('Email Templates');
 <div class="card shadow-sm">
   <div class="table-responsive">
     <table class="table mb-0 align-middle">
-      <thead><tr><th>Name</th><th>Category</th><th>Subject</th><th>Stage</th><th>Active</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Category</th><th>Subject</th><th>Format</th><th>Stage</th><th>Active</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($templates as $template): ?>
         <tr>
           <td><?= e($template['name']) ?></td>
           <td><?= e($template['category']) ?></td>
           <td><?= e($template['subject']) ?></td>
+          <td>
+            <?php if (!empty($template['body_html'])): ?><span class="badge text-bg-primary">HTML</span><?php endif; ?>
+            <?php if (!empty($template['body_text']) || !empty($template['body'])): ?><span class="badge text-bg-secondary">Text</span><?php endif; ?>
+          </td>
           <td><?= e($template['followup_stage']) ?></td>
           <td><?= $template['active'] ? 'Yes' : 'No' ?></td>
-          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/templates/edit.php?id=<?= e($template['id']) ?>">Edit</a></td>
+          <td class="text-end d-flex justify-content-end gap-2">
+            <a class="btn btn-sm btn-outline-secondary" href="/templates/preview.php?id=<?= e($template['id']) ?>">Preview</a>
+            <a class="btn btn-sm btn-outline-primary" href="/templates/edit.php?id=<?= e($template['id']) ?>">Edit</a>
+          </td>
         </tr>
       <?php endforeach; ?>
       </tbody>

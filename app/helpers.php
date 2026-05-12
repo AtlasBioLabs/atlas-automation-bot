@@ -301,12 +301,24 @@ function lead_statuses(): array
         'invalid',
         'bounced',
         'unsubscribed',
+        'deleted',
     ];
 }
 
 function stopped_statuses(): array
 {
-    return ['replied', 'interested', 'quoted', 'customer', 'not_interested', 'complained', 'invalid', 'bounced', 'unsubscribed'];
+    return ['replied', 'interested', 'quoted', 'customer', 'not_interested', 'complained', 'invalid', 'bounced', 'unsubscribed', 'deleted'];
+}
+
+function skip_reason_label(string $reason): string
+{
+    return match ($reason) {
+        'archived_deleted' => 'Archived/deleted',
+        'stopped_status' => 'Stopped status',
+        'duplicate_pending' => 'Duplicate pending queue',
+        'invalid_email' => 'Invalid email',
+        default => ucwords(str_replace('_', ' ', $reason)),
+    };
 }
 
 function normalize_email(string $email): string

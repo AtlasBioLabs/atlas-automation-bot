@@ -48,7 +48,14 @@ foreach ($files as $file) {
             if ($trimmed === '') {
                 continue;
             }
-            $pdo->exec($trimmed);
+            try {
+                $pdo->exec($trimmed);
+            } catch (Throwable $statementError) {
+                if (!migration_error_is_ignorable($statementError)) {
+                    throw $statementError;
+                }
+                echo '  [ignored] ' . normalize_migration_error_message($statementError->getMessage()) . PHP_EOL;
+            }
         }
 
         $track = $pdo->prepare('INSERT INTO schema_migrations (filename) VALUES (?)');
@@ -152,4 +159,26 @@ function split_sql_statements(string $sql): array
     }
 
     return $statements;
+}
+
+function migration_error_is_ignorable(Throwable $throwable): bool
+{
+    $message = strtolower($throwable->getMessage());
+    foreach ([
+        'duplicate column name',
+        'duplicate key name',
+        'already exists',
+        'multiple primary key defined',
+    ] as $needle) {
+        if (str_contains($message, $needle)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function normalize_migration_error_message(string $message): string
+{
+    return preg_replace('/\s+/', ' ', trim($message)) ?? trim($message);
 }

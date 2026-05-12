@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/QueueService.php';
+require_once __DIR__ . '/LeadService.php';
 
 final class OutreachService
 {
@@ -14,7 +15,7 @@ final class OutreachService
         if ($businessProfileId !== null && $lead && (int) $lead['business_profile_id'] !== $businessProfileId) {
             return false;
         }
-        if (!$lead || (bool) $lead['bounced'] || (bool) $lead['unsubscribed'] || in_array($lead['status'], stopped_statuses(), true)) {
+        if (!$lead || LeadService::suppressionReason($lead) !== null) {
             return false;
         }
 
@@ -80,7 +81,8 @@ final class OutreachService
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
             'SELECT q.*, l.company_name, l.contact_name, l.email, l.category, l.status AS lead_status, l.bounced, l.unsubscribed, l.unsubscribe_token,
-                    t.id AS resolved_template_id, t.active AS template_active, t.subject, t.body, t.followup_stage
+                    l.archived_at, l.deleted_at,
+                    t.id AS resolved_template_id, t.active AS template_active, t.subject, t.preheader, t.body, t.body_html, t.body_text, t.followup_stage
              FROM email_queue q
              JOIN leads l ON l.id = q.lead_id
              LEFT JOIN email_templates t ON t.id = q.template_id AND t.business_profile_id = q.business_profile_id
@@ -112,16 +114,30 @@ final class OutreachService
                 continue;
             }
             if (self::shouldSkip($row)) {
-                self::markQueue((int) $row['id'], 'skipped', 'Lead is stopped, bounced, or unsubscribed.');
+                $reason = LeadService::suppressionReason([
+                    'email' => $row['email'],
+                    'status' => $row['lead_status'],
+                    'bounced' => $row['bounced'],
+                    'unsubscribed' => $row['unsubscribed'],
+                    'archived_at' => $row['archived_at'],
+                    'deleted_at' => $row['deleted_at'],
+                ]) ?? 'stopped_status';
+                self::markQueue((int) $row['id'], 'skipped', 'Lead skipped: ' . skip_reason_label($reason) . '.');
                 $stats['skipped']++;
                 continue;
             }
 
             $row['business_profile_id'] = $businessProfileId;
-            $subject = Mailer::render($row['subject'], $row, $business);
-            $body = Mailer::render($row['body'], $row, $business);
-            $result = Mailer::send($row['email'], $row['contact_name'] ?: $row['company_name'], $subject, $body, $business);
-            self::logEmail($businessProfileId, (int) $row['lead_id'], (int) $row['template_id'], (int) $row['id'], $row['email'], $subject, $result);
+            $rendered = self::queueRenderPayload($row, $business);
+            $result = Mailer::send(
+                $row['email'],
+                $row['contact_name'] ?: $row['company_name'],
+                $rendered['subject'],
+                $rendered['text'],
+                $business,
+                ['html' => $rendered['html'], 'text' => $rendered['text'], 'preheader' => $rendered['preheader'], 'prepared' => true]
+            );
+            self::logEmail($businessProfileId, (int) $row['lead_id'], (int) $row['template_id'], (int) $row['id'], $row['email'], $rendered['subject'], $result);
 
             if ($result['sent']) {
                 self::markQueue((int) $row['id'], 'sent', null);
@@ -186,6 +202,11 @@ final class OutreachService
         return $stmt->fetchAll();
     }
 
+    public static function syncCampaignStatus(int $businessProfileId, int $campaignId): void
+    {
+        self::refreshCampaignStatus($businessProfileId, $campaignId);
+    }
+
     private static function lead(int $leadId): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT * FROM leads WHERE id = ?');
@@ -214,18 +235,45 @@ final class OutreachService
 
     private static function queueEmail(int $businessProfileId, int $leadId, int $templateId, string $scheduledAt): void
     {
+        $lead = self::lead($leadId);
+        if (!$lead) {
+            return;
+        }
+        $business = Settings::effectiveBusiness($businessProfileId) ?? BusinessProfile::find($businessProfileId);
+        $stmt = Database::pdo()->prepare('SELECT * FROM email_templates WHERE id = ? AND business_profile_id = ? LIMIT 1');
+        $stmt->execute([$templateId, $businessProfileId]);
+        $template = $stmt->fetch();
+        if (!$template) {
+            return;
+        }
+        $render = Mailer::renderTemplate($template, $lead, $business);
         $stmt = Database::pdo()->prepare(
-            'INSERT INTO email_queue (business_profile_id, lead_id, template_id, scheduled_at, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, "pending", NOW(), NOW())'
+            'INSERT INTO email_queue (business_profile_id, lead_id, template_id, rendered_subject, rendered_preheader, rendered_html, rendered_text, rendered_variables, scheduled_at, status, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "pending", NOW(), NOW())'
         );
-        $stmt->execute([$businessProfileId, $leadId, $templateId, $scheduledAt]);
+        $stmt->execute([
+            $businessProfileId,
+            $leadId,
+            $templateId,
+            $render['subject'],
+            $render['preheader'],
+            $render['html'],
+            $render['text'],
+            json_encode($render['variables'], JSON_UNESCAPED_SLASHES),
+            $scheduledAt,
+        ]);
     }
 
     private static function shouldSkip(array $row): bool
     {
-        return (bool) $row['bounced']
-            || (bool) $row['unsubscribed']
-            || in_array($row['lead_status'], stopped_statuses(), true);
+        return LeadService::suppressionReason([
+            'email' => $row['email'] ?? '',
+            'status' => $row['lead_status'] ?? '',
+            'bounced' => $row['bounced'] ?? 0,
+            'unsubscribed' => $row['unsubscribed'] ?? 0,
+            'archived_at' => $row['archived_at'] ?? null,
+            'deleted_at' => $row['deleted_at'] ?? null,
+        ]) !== null;
     }
 
     private static function markQueue(int $queueId, string $status, ?string $error): void
@@ -284,19 +332,54 @@ final class OutreachService
                 SUM(status = "pending") AS pending_count,
                 SUM(status = "failed") AS failed_count,
                 SUM(status = "sent") AS sent_count,
+                SUM(status = "cancelled") AS cancelled_count,
+                SUM(status = "skipped") AS skipped_count,
                 COUNT(*) AS total_count
              FROM email_queue
              WHERE business_profile_id = ? AND campaign_id = ?'
         );
         $stmt->execute([$businessProfileId, $campaignId]);
-        $counts = $stmt->fetch() ?: ['pending_count' => 0, 'failed_count' => 0, 'sent_count' => 0, 'total_count' => 0];
-        $status = ((int) $counts['pending_count'] > 0) ? 'queued' : 'completed';
-        if ((int) $counts['total_count'] > 0 && (int) $counts['failed_count'] > 0 && (int) $counts['sent_count'] === 0) {
-            $status = 'failed';
+        $counts = $stmt->fetch() ?: ['pending_count' => 0, 'failed_count' => 0, 'sent_count' => 0, 'cancelled_count' => 0, 'skipped_count' => 0, 'total_count' => 0];
+        $pending = (int) $counts['pending_count'];
+        $failed = (int) $counts['failed_count'];
+        $sent = (int) $counts['sent_count'];
+        $cancelled = (int) $counts['cancelled_count'];
+        $skipped = (int) $counts['skipped_count'];
+        $total = (int) $counts['total_count'];
+
+        $status = 'queued';
+        if ($total === 0) {
+            $status = 'draft';
+        } elseif ($pending > 0 && ($sent > 0 || $failed > 0)) {
+            $status = 'sending';
+        } elseif ($pending > 0) {
+            $status = 'queued';
+        } elseif ($sent > 0 && $failed === 0 && $cancelled === 0 && $skipped === 0) {
+            $status = 'completed';
+        } elseif ($sent > 0 && ($failed > 0 || $cancelled > 0 || $skipped > 0)) {
+            $status = 'partially_failed';
+        } elseif ($cancelled > 0 && $sent === 0 && $failed === 0) {
+            $status = 'cancelled';
+        } elseif ($failed > 0) {
+            $status = 'partially_failed';
         }
 
         $update = Database::pdo()->prepare('UPDATE campaigns SET status = ?, updated_at = NOW() WHERE id = ? AND business_profile_id = ?');
         $update->execute([$status, $campaignId, $businessProfileId]);
+    }
+
+    private static function queueRenderPayload(array $row, array $business): array
+    {
+        if (!empty($row['rendered_subject']) && (!empty($row['rendered_html']) || !empty($row['rendered_text']))) {
+            return [
+                'subject' => (string) $row['rendered_subject'],
+                'preheader' => (string) ($row['rendered_preheader'] ?? ''),
+                'html' => (string) ($row['rendered_html'] ?? ''),
+                'text' => (string) ($row['rendered_text'] ?? ''),
+            ];
+        }
+
+        return Mailer::renderTemplate($row, $row, $business);
     }
 
     private static function advanceLead(array $row): void

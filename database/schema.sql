@@ -144,6 +144,11 @@ CREATE TABLE `email_queue` (
   `campaign_name` varchar(190) DEFAULT NULL,
   `lead_id` int(10) unsigned NOT NULL,
   `template_id` int(10) unsigned NOT NULL,
+  `rendered_subject` varchar(255) DEFAULT NULL,
+  `rendered_preheader` varchar(255) DEFAULT NULL,
+  `rendered_html` mediumtext DEFAULT NULL,
+  `rendered_text` mediumtext DEFAULT NULL,
+  `rendered_variables` longtext DEFAULT NULL,
   `scheduled_at` datetime NOT NULL,
   `sent_at` datetime DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'pending',
@@ -170,7 +175,10 @@ CREATE TABLE `email_templates` (
   `name` varchar(190) NOT NULL,
   `category` varchar(120) NOT NULL DEFAULT 'Other',
   `subject` varchar(255) NOT NULL,
+  `preheader` varchar(255) DEFAULT NULL,
   `body` mediumtext NOT NULL,
+  `body_html` mediumtext DEFAULT NULL,
+  `body_text` mediumtext DEFAULT NULL,
   `followup_stage` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
@@ -203,6 +211,8 @@ CREATE TABLE `leads` (
   `followup_stage` tinyint(3) unsigned NOT NULL DEFAULT 0,
   `bounced` tinyint(1) NOT NULL DEFAULT 0,
   `unsubscribed` tinyint(1) NOT NULL DEFAULT 0,
+  `archived_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
   `unsubscribe_token` char(64) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -212,8 +222,33 @@ CREATE TABLE `leads` (
   KEY `leads_status_index` (`status`),
   KEY `leads_next_followup_index` (`next_followup_at`),
   KEY `leads_category_index` (`category`),
-  KEY `leads_business_status_index` (`business_profile_id`,`status`)
+  KEY `leads_business_status_index` (`business_profile_id`,`status`),
+  KEY `leads_archived_at_index` (`archived_at`),
+  KEY `leads_deleted_at_index` (`deleted_at`),
+  KEY `leads_business_archived_index` (`business_profile_id`,`archived_at`,`deleted_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `campaign_skips`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `campaign_skips` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `business_profile_id` int(10) unsigned NOT NULL,
+  `campaign_id` int(10) unsigned NOT NULL,
+  `lead_id` int(10) unsigned DEFAULT NULL,
+  `lead_company_name` varchar(190) DEFAULT NULL,
+  `lead_contact_name` varchar(190) DEFAULT NULL,
+  `lead_email` varchar(190) DEFAULT NULL,
+  `reason` varchar(50) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `campaign_skips_campaign_index` (`campaign_id`),
+  KEY `campaign_skips_business_reason_index` (`business_profile_id`,`reason`),
+  KEY `campaign_skips_lead_fk` (`lead_id`),
+  CONSTRAINT `campaign_skips_business_fk` FOREIGN KEY (`business_profile_id`) REFERENCES `business_profiles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `campaign_skips_campaign_fk` FOREIGN KEY (`campaign_id`) REFERENCES `campaigns` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `campaign_skips_lead_fk` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `rate_limits`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

@@ -52,7 +52,7 @@ Deploy steps:
 3. Add the environment variables listed below to the web service.
 4. Deploy the web service. Railway will build from the `Dockerfile`.
 5. Import `database/schema.sql` and `database/seed.sql` into the Railway MySQL database.
-6. Run `php scripts/run_migrations.php` in a Railway shell to apply any pending safe SQL migrations such as `provider_reference` fixes and timezone defaults.
+6. Run `php scripts/run_migrations.php` in a Railway shell to apply any pending safe SQL migrations such as `provider_reference` fixes, timezone defaults, archived lead support, HTML template fields, rendered queue snapshots, and campaign skip tracking.
 7. Run `php scripts/create_admin.php` in a Railway shell or create the first admin from a secure one-off CLI session.
 8. Open `/login.php`, sign in, confirm the Atlas BioLabs profile is active, and keep `MAIL_PROVIDER=log` until you are ready to test a real provider.
 
@@ -85,7 +85,7 @@ Railway migration command:
 php scripts/run_migrations.php
 ```
 
-This script creates a `schema_migrations` table if needed, applies pending `.sql` files from `database/migrations`, does not drop existing data, and skips migrations that were already recorded.
+This script creates a `schema_migrations` table if needed, applies pending `.sql` files from `database/migrations`, does not drop existing data, skips migrations that were already recorded, and tolerates duplicate-column / duplicate-index errors for partially applied safe migrations.
 
 Security notes:
 
@@ -184,6 +184,13 @@ Every campaign shows a preview with a rendered sample email, eligible count, ski
 
 Campaigns are stored in `campaigns`, and every queued email keeps its selected `template_id`. The sender fails queue rows with missing or inactive templates instead of falling back to a hardcoded message.
 
+Admins can now:
+
+- archive, restore, and permanently delete leads from `/leads/index.php` and `/leads/edit.php`
+- open `/queue/view.php?id=...` to inspect the rendered subject, HTML preview, plain text fallback, queue metadata, provider reference, and unsubscribe link
+- open `/campaigns/index.php` and `/campaigns/view.php?id=...` for recipients, skipped leads, failures, email preview, and activity details
+- preview templates from `/templates/preview.php?id=...` with a sample lead and branded HTML output
+
 ## Cron Jobs
 
 Run all active business profiles:
@@ -246,6 +253,7 @@ database/migrations/2026_05_12_campaigns_segments_rfq.sql
 database/migrations/2026_05_12_rfq_api_fields.sql
 database/migrations/2026_05_12_fix_email_logs_provider_reference.sql
 database/migrations/2026_05_12_fix_business_profile_timezone_defaults.sql
+database/migrations/2026_05_12_admin_experience_leads_templates_campaigns.sql
 ```
 
 These scripts add profile IDs safely and assign existing data to Atlas BioLabs profile `1`.

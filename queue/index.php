@@ -17,8 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
     if ($action === 'cancel') {
         $id = (int) ($_POST['id'] ?? 0);
-        $stmt = Database::pdo()->prepare('UPDATE email_queue SET status = "skipped", error_message = "Cancelled by admin.", updated_at = NOW() WHERE id = ? AND business_profile_id = ? AND status = "pending"');
+        $campaignLookup = Database::pdo()->prepare('SELECT campaign_id FROM email_queue WHERE id = ? AND business_profile_id = ? LIMIT 1');
+        $campaignLookup->execute([$id, $businessId]);
+        $campaignId = (int) ($campaignLookup->fetchColumn() ?: 0);
+        $stmt = Database::pdo()->prepare('UPDATE email_queue SET status = "cancelled", error_message = "Cancelled by admin.", updated_at = NOW() WHERE id = ? AND business_profile_id = ? AND status = "pending"');
         $stmt->execute([$id, $businessId]);
+        if ($campaignId > 0) {
+            OutreachService::syncCampaignStatus($businessId, $campaignId);
+        }
         flash('success', 'Pending queue item cancelled.');
         redirect('/queue/index.php');
     }
@@ -51,9 +57,9 @@ if ($scheduledDate !== '') {
 }
 
 $stmt = Database::pdo()->prepare(
-    'SELECT q.*, l.company_name, l.contact_name, l.email, t.name AS template_name
+    'SELECT q.*, l.company_name, l.contact_name, l.email, l.deleted_at, t.name AS template_name
      FROM email_queue q
-     JOIN leads l ON l.id = q.lead_id
+     LEFT JOIN leads l ON l.id = q.lead_id
      LEFT JOIN email_templates t ON t.id = q.template_id AND t.business_profile_id = q.business_profile_id
      WHERE ' . implode(' AND ', $where) . '
      ORDER BY q.scheduled_at DESC
@@ -75,7 +81,7 @@ render_header('Email Queue');
   <div class="col-md-3">
     <select class="form-select" name="status">
       <option value="">All queue statuses</option>
-      <?php foreach (['pending', 'sent', 'failed', 'skipped'] as $option): ?><option value="<?= e($option) ?>"<?= selected($status, $option) ?>><?= e($option) ?></option><?php endforeach; ?>
+      <?php foreach (['pending', 'sent', 'failed', 'skipped', 'cancelled'] as $option): ?><option value="<?= e($option) ?>"<?= selected($status, $option) ?>><?= e($option) ?></option><?php endforeach; ?>
     </select>
   </div>
   <div class="col-md-3">
@@ -95,15 +101,28 @@ render_header('Email Queue');
       <tbody>
       <?php foreach ($rows as $row): ?>
         <tr>
-          <td><?= e($row['campaign_name'] ?: 'Direct queue') ?></td>
-          <td><a href="/leads/edit.php?id=<?= e($row['lead_id']) ?>"><?= e($row['contact_name'] ?: $row['email']) ?></a></td>
-          <td><?= e($row['company_name']) ?></td>
+          <td>
+            <?php if (!empty($row['campaign_id'])): ?>
+              <a href="/campaigns/view.php?id=<?= e($row['campaign_id']) ?>"><?= e($row['campaign_name'] ?: 'Campaign #' . $row['campaign_id']) ?></a>
+            <?php else: ?>
+              <?= e($row['campaign_name'] ?: 'Direct queue') ?>
+            <?php endif; ?>
+          </td>
+          <td>
+            <?php if (!empty($row['lead_id']) && empty($row['deleted_at'])): ?>
+              <a href="/leads/edit.php?id=<?= e($row['lead_id']) ?>"><?= e($row['contact_name'] ?: $row['email']) ?></a>
+            <?php else: ?>
+              <?= e($row['contact_name'] ?: 'Deleted lead') ?>
+            <?php endif; ?>
+          </td>
+          <td><?= e($row['company_name'] ?: 'Deleted lead') ?></td>
           <td><?= e($row['template_name'] ?: 'Missing/inactive template') ?></td>
           <td><?= e(format_app_datetime($row['scheduled_at'], $businessId)) ?></td>
           <td><?= badge_status($row['status']) ?></td>
           <td><?= e(format_app_datetime($row['sent_at'], $businessId)) ?></td>
           <td class="small"><?= e($row['error_message']) ?></td>
-          <td class="text-end">
+          <td class="text-end d-flex justify-content-end gap-2">
+            <a class="btn btn-sm btn-outline-secondary" href="/queue/view.php?id=<?= e($row['id']) ?>">View</a>
             <?php if ($row['status'] === 'pending'): ?>
               <form method="post" class="d-inline">
                 <?= csrf_field() ?><input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="<?= e($row['id']) ?>">

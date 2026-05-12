@@ -13,18 +13,25 @@ final class Mailer
 
     public static function render(string $content, array $lead = [], ?array $business = null): string
     {
+        return strtr($content, self::templateVariables($lead, $business));
+    }
+
+    public static function templateVariables(array $lead = [], ?array $business = null): array
+    {
         $business ??= isset($lead['business_profile_id']) ? BusinessProfile::find((int) $lead['business_profile_id']) : BusinessProfile::current();
         $unsubscribe = '';
         if (!empty($lead['unsubscribe_token'])) {
             $unsubscribe = app_url('/unsubscribe.php?business_id=' . (int) $business['id'] . '&token=' . urlencode((string) $lead['unsubscribe_token']));
         }
 
-        $variables = [
+        return [
             '{{business_name}}' => $business['business_name'] ?? '',
             '{{brand_name}}' => $business['brand_name'] ?? '',
             '{{tagline}}' => $business['tagline'] ?? '',
+            '{{business_tagline}}' => $business['tagline'] ?? '',
             '{{industry}}' => $business['industry'] ?? '',
             '{{website_url}}' => $business['website_url'] ?? '',
+            '{{business_logo_url}}' => $business['logo_url'] ?? '',
             '{{sender_name}}' => $business['sender_name'] ?? '',
             '{{business_address}}' => $business['business_address'] ?? '',
             '{{default_signature}}' => $business['default_signature'] ?? '',
@@ -36,11 +43,45 @@ final class Mailer
             '{{unsubscribe_link}}' => $unsubscribe,
             '{{atlas_signature}}' => $business['default_signature'] ?? '',
         ];
-
-        return strtr($content, $variables);
     }
 
-    public static function send(string $toEmail, string $toName, string $subject, string $body, ?array $business = null): array
+    public static function renderTemplate(array $template, array $lead = [], ?array $business = null): array
+    {
+        $business ??= isset($lead['business_profile_id']) ? Settings::effectiveBusiness((int) $lead['business_profile_id']) : BusinessProfile::current();
+        $variables = self::templateVariables($lead, $business);
+
+        $subject = strtr((string) ($template['subject'] ?? ''), $variables);
+        $preheader = strtr((string) ($template['preheader'] ?? ''), $variables);
+        $legacyBody = strtr((string) ($template['body'] ?? ''), $variables);
+        $textBody = trim((string) ($template['body_text'] ?? '')) !== ''
+            ? strtr((string) $template['body_text'], $variables)
+            : $legacyBody;
+        $htmlSource = trim((string) ($template['body_html'] ?? ''));
+        if ($htmlSource !== '') {
+            $renderedHtmlSource = strtr($htmlSource, $variables);
+            $htmlBody = preg_match('/<(?:html|body|table)\b/i', $renderedHtmlSource)
+                ? $renderedHtmlSource
+                : self::wrapHtmlTemplate($subject, $preheader, $renderedHtmlSource, $business, $variables);
+        } else {
+            $htmlBody = self::wrapHtmlTemplate($subject, $preheader, nl2br(e($textBody)), $business, $variables);
+        }
+
+        $textBody = self::appendCompliance($textBody, $business);
+        $htmlBody = self::appendComplianceHtml($htmlBody, $business);
+        $missing = self::missingVariables([$subject, $preheader, $textBody, $htmlBody]);
+
+        return [
+            'subject' => $subject,
+            'preheader' => $preheader,
+            'html' => $htmlBody,
+            'text' => $textBody,
+            'variables' => $variables,
+            'missing_variables' => $missing,
+            'unsubscribe_link' => $variables['{{unsubscribe_link}}'] ?? '',
+        ];
+    }
+
+    public static function send(string $toEmail, string $toName, string $subject, string $body, ?array $business = null, array $content = []): array
     {
         $business ??= BusinessProfile::current();
         $business = Settings::effectiveBusiness((int) $business['id']) ?? $business;
@@ -54,13 +95,20 @@ final class Mailer
             ]);
         }
 
-        $body = self::appendCompliance($body, $business);
+        $prepared = !empty($content['prepared']);
+        $textBody = (string) ($content['text'] ?? $body);
+        $htmlBody = (string) ($content['html'] ?? self::toHtmlBody($textBody));
+        if (!$prepared) {
+            $textBody = self::appendCompliance($textBody, $business);
+            $htmlBody = self::appendComplianceHtml($htmlBody, $business);
+        }
+        $preheader = trim((string) ($content['preheader'] ?? ''));
         if ($provider === 'log') {
-            return self::logMail($toEmail, $toName, $subject, $body, $business, $base);
+            return self::logMail($toEmail, $toName, $subject, $htmlBody, $textBody, $preheader, $business, $base);
         }
 
         if ($provider === 'brevo_api') {
-            return self::sendBrevoApi($toEmail, $toName, $subject, $body, $business, $base);
+            return self::sendBrevoApi($toEmail, $toName, $subject, $htmlBody, $textBody, $preheader, $business, $base);
         }
 
         if ($provider !== 'smtp') {
@@ -104,8 +152,9 @@ final class Mailer
             }
             $mail->addAddress($toEmail, $toName);
             $mail->Subject = $subject;
-            $mail->Body = $body;
-            $mail->AltBody = $body;
+            $mail->isHTML(true);
+            $mail->Body = $htmlBody;
+            $mail->AltBody = $textBody;
             $mail->send();
 
             return self::mergeResult($base, ['sent' => true, 'error' => null, 'reference' => null]);
@@ -136,7 +185,15 @@ final class Mailer
             $recipientEmail,
             'Brevo Diagnostic',
             'Atlas BioLabs Brevo API Test',
+            self::wrapHtmlTemplate(
+                'Atlas BioLabs Brevo API Test',
+                '',
+                '<p style="margin:0 0 16px;">This is a one-off Brevo API test from the Atlas BioLabs automation bot.</p>',
+                $business,
+                self::templateVariables([], $business)
+            ),
             'This is a one-off Brevo API test from the Atlas BioLabs automation bot.',
+            '',
             $business,
             $base
         );
@@ -157,7 +214,30 @@ final class Mailer
         return implode("\n\n", $parts);
     }
 
-    private static function logMail(string $toEmail, string $toName, string $subject, string $body, array $business, array $base): array
+    private static function appendComplianceHtml(string $html, array $business): string
+    {
+        $footer = trim((string) $business['compliance_footer']);
+        $unsubscribeFooter = trim((string) Settings::option('UNSUBSCRIBE_FOOTER_TEXT', '', (int) $business['id']));
+        $address = trim((string) $business['business_address']);
+
+        $footerBlock = '';
+        if ($footer !== '') {
+            $footerBlock .= '<p style="margin:0 0 8px;color:#5B6B7E;font-size:12px;line-height:18px;">' . nl2br(e($footer)) . '</p>';
+        }
+        if ($address !== '') {
+            $footerBlock .= '<p style="margin:0 0 8px;color:#5B6B7E;font-size:12px;line-height:18px;">' . nl2br(e($address)) . '</p>';
+        }
+        if ($unsubscribeFooter !== '') {
+            $footerBlock .= '<p style="margin:0;color:#5B6B7E;font-size:12px;line-height:18px;">' . nl2br(e($unsubscribeFooter)) . '</p>';
+        }
+        if ($footerBlock === '') {
+            return $html;
+        }
+
+        return $html . '<div style="margin-top:24px;border-top:1px solid #D9DEE6;padding-top:18px;">' . $footerBlock . '</div>';
+    }
+
+    private static function logMail(string $toEmail, string $toName, string $subject, string $htmlBody, string $textBody, string $preheader, array $business, array $base): array
     {
         $dir = APP_ROOT . '/storage/mail';
         if (!is_dir($dir)) {
@@ -171,13 +251,18 @@ final class Mailer
             $message .= 'Reply-To: ' . $business['reply_to_email'] . "\n";
         }
         $message .= 'Business-Profile-ID: ' . (int) $business['id'] . "\n";
-        $message .= "Subject: {$subject}\n\n{$body}\n";
+        if ($preheader !== '') {
+            $message .= "Preheader: {$preheader}\n";
+        }
+        $message .= "Subject: {$subject}\n";
+        $message .= "Content-Type: multipart/alternative\n\n";
+        $message .= "---TEXT---\n{$textBody}\n\n---HTML---\n{$htmlBody}\n";
         file_put_contents($file, $message);
 
         return self::mergeResult($base, ['sent' => true, 'error' => null, 'reference' => basename($file)]);
     }
 
-    private static function sendBrevoApi(string $toEmail, string $toName, string $subject, string $body, array $business, array $base): array
+    private static function sendBrevoApi(string $toEmail, string $toName, string $subject, string $htmlBody, string $textBody, string $preheader, array $business, array $base): array
     {
         $validation = self::validateBrevoSend($business, $toEmail, $base['provider']);
         if ($validation !== null) {
@@ -194,8 +279,8 @@ final class Mailer
                 'name' => $toName !== '' ? $toName : $toEmail,
             ]],
             'subject' => $subject,
-            'htmlContent' => self::toHtmlBody($body),
-            'textContent' => self::toPlainText($body),
+            'htmlContent' => $htmlBody,
+            'textContent' => self::toPlainText($textBody),
         ];
 
         $replyTo = trim((string) ($business['reply_to_email'] ?: Settings::option('MAIL_REPLY_TO', '', (int) $business['id'])));
@@ -477,5 +562,48 @@ final class Mailer
     private static function mergeResult(array $base, array $overrides): array
     {
         return array_merge($base, $overrides);
+    }
+
+    private static function wrapHtmlTemplate(string $subject, string $preheader, string $bodyHtml, array $business, array $variables): string
+    {
+        $logo = trim((string) ($business['logo_url'] ?? ''));
+        $brand = trim((string) ($business['brand_name'] ?? $business['business_name'] ?? 'Business profile'));
+        $tagline = trim((string) ($business['tagline'] ?? ''));
+        $website = trim((string) ($business['website_url'] ?? ''));
+        $primary = trim((string) ($business['primary_color'] ?? '#0A1A2F'));
+        $accent = trim((string) ($business['accent_color'] ?? '#2E6BFF'));
+        $signature = nl2br(e((string) ($variables['{{default_signature}}'] ?? '')));
+        $unsubscribe = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
+        $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? ''));
+
+        $logoMarkup = $logo !== ''
+            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:180px;height:auto;border:0;">'
+            : '<div style="font-size:24px;font-weight:700;color:' . e($primary) . ';">' . e($brand) . '</div>';
+
+        $ctaMarkup = $website !== ''
+            ? '<tr><td style="padding:0 36px 28px;"><a href="' . e($website) . '" style="display:inline-block;background:' . e($accent) . ';color:#FFFFFF;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600;">Visit ' . e($brand) . '</a></td></tr>'
+            : '';
+        $unsubscribeMarkup = ($unsubscribe !== '' && $unsubscribeText !== '')
+            ? '<p style="margin:12px 0 0;color:#5B6B7E;font-size:12px;line-height:18px;">' . e($unsubscribeText) . ' <a href="' . e($unsubscribe) . '" style="color:' . e($accent) . ';">Unsubscribe</a></p>'
+            : '';
+
+        return '<!doctype html><html><body style="margin:0;padding:0;background:#F4F7FB;">'
+            . '<div style="display:none;max-height:0;overflow:hidden;opacity:0;">' . e($preheader) . '</div>'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F4F7FB;"><tr><td align="center" style="padding:24px 12px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#FFFFFF;border:1px solid #D9DEE6;border-radius:8px;overflow:hidden;">'
+            . '<tr><td style="background:' . e($primary) . ';padding:28px 36px;">' . $logoMarkup
+            . ($tagline !== '' ? '<div style="margin-top:8px;color:#C7CED6;font-size:14px;line-height:20px;">' . e($tagline) . '</div>' : '')
+            . '</td></tr>'
+            . '<tr><td style="padding:32px 36px 20px;"><h1 style="margin:0 0 16px;color:#102033;font-size:24px;line-height:32px;">' . e($subject) . '</h1>'
+            . '<div style="color:#243548;font-size:15px;line-height:24px;">' . $bodyHtml . '</div></td></tr>'
+            . $ctaMarkup
+            . '<tr><td style="padding:0 36px 24px;"><div style="color:#243548;font-size:14px;line-height:22px;">' . $signature . '</div>' . $unsubscribeMarkup . '</td></tr>'
+            . '</table></td></tr></table></body></html>';
+    }
+
+    private static function missingVariables(array $contents): array
+    {
+        preg_match_all('/{{\s*([a-zA-Z0-9_]+)\s*}}/', implode("\n", $contents), $matches);
+        return array_values(array_unique($matches[0] ?? []));
     }
 }

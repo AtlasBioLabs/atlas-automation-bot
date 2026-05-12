@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../app/layout.php';
 require_once __DIR__ . '/../app/QueueService.php';
+require_once __DIR__ . '/../app/LeadService.php';
 
 Auth::require();
 $businessId = BusinessProfile::currentId();
@@ -30,6 +31,7 @@ $input = [
         'followup_stage' => $_REQUEST['followup_stage'] ?? '',
         'created_from' => $_REQUEST['created_from'] ?? '',
         'created_to' => $_REQUEST['created_to'] ?? '',
+        'visibility' => $_REQUEST['visibility'] ?? LeadService::VISIBILITY_ACTIVE,
         'segment_id' => $_REQUEST['segment_id'] ?? '',
     ],
 ];
@@ -88,7 +90,7 @@ render_header('Create Campaign Queue');
 
       <input type="hidden" name="lead_id" value="<?= e($input['lead_id']) ?>">
       <?php foreach ((array) $input['selected_lead_ids'] as $leadId): ?><input type="hidden" name="selected_lead_ids[]" value="<?= e($leadId) ?>"><?php endforeach; ?>
-      <?php foreach ($input['filters'] as $key => $value): ?><?php if ($key !== 'segment_id'): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e($value) ?>"><?php endif; ?><?php endforeach; ?>
+      <?php foreach ($input['filters'] as $key => $value): ?><?php if ($key !== 'segment_id'): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e(is_array($value) ? json_encode($value) : $value) ?>"><?php endif; ?><?php endforeach; ?>
 
       <div class="col-12"><button class="btn btn-primary" type="submit">Preview Queue</button> <a class="btn btn-outline-secondary" href="/leads/index.php">Back to leads</a></div>
     </form>
@@ -113,20 +115,35 @@ render_header('Create Campaign Queue');
           <h3 class="h6">Skipped reasons</h3>
           <div class="d-flex flex-wrap gap-2">
             <?php foreach ($preview['skipped_reason_counts'] as $reason => $count): ?>
-              <span class="badge text-bg-secondary"><?= e($reason) ?>: <?= e($count) ?></span>
+              <span class="badge text-bg-secondary"><?= e(skip_reason_label((string) $reason)) ?>: <?= e($count) ?></span>
             <?php endforeach; ?>
           </div>
         </div>
       <?php endif; ?>
       <h3 class="h6">Sample subject</h3>
       <pre class="p-3 bg-light border rounded"><?= e($preview['sample_subject']) ?></pre>
-      <h3 class="h6">Rendered sample email</h3>
-      <pre class="p-3 bg-light border rounded" style="white-space:pre-wrap"><?= e($preview['sample_body']) ?></pre>
+      <?php if ($preview['sample_preheader'] !== ''): ?>
+        <h3 class="h6">Sample preheader</h3>
+        <pre class="p-3 bg-light border rounded"><?= e($preview['sample_preheader']) ?></pre>
+      <?php endif; ?>
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <h3 class="h6">Rendered HTML preview</h3>
+          <iframe class="w-100 border rounded bg-white" style="min-height:360px;" srcdoc="<?= e($preview['sample_html']) ?>"></iframe>
+        </div>
+        <div class="col-lg-5">
+          <h3 class="h6">Plain text fallback</h3>
+          <pre class="p-3 bg-light border rounded h-100" style="white-space:pre-wrap"><?= e($preview['sample_text']) ?></pre>
+        </div>
+      </div>
+      <?php if ($preview['missing_variables']): ?>
+        <div class="alert alert-warning small mt-3 mb-0">Unresolved variables: <?= e(implode(', ', $preview['missing_variables'])) ?></div>
+      <?php endif; ?>
       <?php if ($preview['skipped']): ?>
         <h3 class="h6">Skipped sample</h3>
         <ul class="small">
           <?php foreach (array_slice($preview['skipped'], 0, 10) as $skipped): ?>
-            <li><?= e($skipped['lead']['email']) ?>: <?= e($skipped['reason']) ?></li>
+            <li><?= e($skipped['lead']['email']) ?>: <?= e(skip_reason_label((string) $skipped['reason'])) ?></li>
           <?php endforeach; ?>
         </ul>
       <?php endif; ?>
@@ -140,7 +157,7 @@ render_header('Create Campaign Queue');
         <input type="hidden" name="scheduled_at" value="<?= e($input['scheduled_at']) ?>">
         <input type="hidden" name="lead_id" value="<?= e($input['lead_id']) ?>">
         <?php foreach ((array) $input['selected_lead_ids'] as $leadId): ?><input type="hidden" name="selected_lead_ids[]" value="<?= e($leadId) ?>"><?php endforeach; ?>
-        <?php foreach ($input['filters'] as $key => $value): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e($value) ?>"><?php endforeach; ?>
+        <?php foreach ($input['filters'] as $key => $value): ?><input type="hidden" name="<?= e($key) ?>" value="<?= e(is_array($value) ? json_encode($value) : $value) ?>"><?php endforeach; ?>
         <button class="btn btn-primary" type="submit"<?= $preview['eligible_count'] === 0 ? ' disabled' : '' ?>>Confirm and Queue Campaign</button>
       </form>
     </div>
