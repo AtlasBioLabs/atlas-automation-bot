@@ -112,10 +112,17 @@ render_header('Campaign Detail');
     padding: 24px;
   }
   .email-preview-canvas {
+    width: 100%;
     background: #ffffff;
     border: 1px solid #d6e0eb;
     border-radius: 18px;
     box-shadow: 0 18px 40px rgba(10, 26, 47, 0.08);
+    overflow: hidden;
+  }
+  .email-preview-canvas iframe {
+    display: block;
+    width: 100%;
+    border: 0;
     overflow: hidden;
   }
   .email-preview-meta {
@@ -319,13 +326,13 @@ render_header('Campaign Detail');
     <?php endif; ?>
     <h3 class="h6 mb-3">Desktop Preview</h3>
     <div class="email-preview-frame mb-4 preview-scroll-frame">
-      <div class="email-preview-canvas mx-auto" style="max-width:680px;">
+      <div class="email-preview-canvas mx-auto" style="max-width:620px;">
         <iframe class="preview-iframe" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
       </div>
     </div>
     <h3 class="h6 mb-3">Mobile Preview</h3>
     <div class="email-preview-frame preview-scroll-frame">
-      <div class="email-preview-canvas mx-auto" style="width:100%;max-width:392px;">
+      <div class="email-preview-canvas mx-auto" style="width:100%;max-width:380px;">
         <iframe class="preview-iframe" srcdoc="<?= e((string) $preview['html']) ?>"></iframe>
       </div>
     </div>

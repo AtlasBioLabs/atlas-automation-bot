@@ -668,8 +668,8 @@ final class Mailer
         $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Premium sourcing communication for qualified B2B buyers.'));
 
         $logoMarkup = $logo !== ''
-            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" style="display:block;max-width:190px;width:100%;height:auto;border:0;">'
-            : '<div style="font-size:26px;font-weight:700;line-height:32px;color:' . e($secondary) . ';letter-spacing:0;">' . e($brand) . '</div>';
+            ? '<img src="' . e($logo) . '" alt="' . e($brand) . ' logo" width="220" class="email-shell-logo-img" style="display:block;width:100%;max-width:220px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">'
+            : '<div class="email-shell-logo-fallback" style="display:block;width:100%;max-width:220px;margin:0 auto;font-size:24px;font-weight:700;line-height:30px;color:' . e($secondary) . ';letter-spacing:0;text-align:center;word-break:break-word;overflow-wrap:anywhere;">' . e($brand) . '</div>';
 
         $secondaryCtaMarkup = $companyProfileUrl !== ''
             ? '<a href="' . e($companyProfileUrl) . '" style="color:' . e($accent) . ';text-decoration:none;font-weight:600;">view our company profile</a>'
@@ -682,7 +682,7 @@ final class Mailer
             ? '<a href="' . e($website) . '" style="color:#CFE0FF;text-decoration:none;">' . e(preg_replace('#^https?://#', '', $website) ?? $website) . '</a>'
             : 'Qualified B2B sourcing communication';
         $heroSupportLine = 'Built for clear commercial follow-up, documentation-aware discussion, and qualified supply coordination.';
-        $logoCard = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#102744;border:1px solid #23466E;border-radius:18px;"><tr><td style="padding:16px 18px;">' . $logoMarkup . '</td></tr></table>';
+        $logoCard = '<table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-shell-logo-wrap" style="width:100%;max-width:220px;margin:0 auto;background:#102744;border:1px solid #23466E;border-radius:18px;overflow:hidden;"><tr><td align="center" style="padding:14px 14px 12px;overflow:hidden;"><table role="presentation" cellspacing="0" cellpadding="0" border="0" class="email-shell-logo-lock" style="width:100%;max-width:220px;margin:0 auto;"><tr><td align="center" style="width:100%;max-width:220px;overflow:hidden;">' . $logoMarkup . '</td></tr></table></td></tr></table>';
         $trustRows = [
             ['title' => 'MOQ flexibility', 'copy' => 'Structured quantity planning for early-stage and scaling programs.'],
             ['title' => 'Documentation support', 'copy' => 'Clear, review-ready discussion for technical and commercial review.'],
@@ -700,27 +700,27 @@ final class Mailer
         }
 
         return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-            . '<style>body,table,td,a{font-family:Arial,Helvetica,sans-serif;}img{max-width:100%!important;height:auto!important;border:0;display:block;}@media only screen and (max-width:620px){.email-shell{width:100%!important;max-width:100%!important;}.email-shell-hero-pad{padding-left:20px!important;padding-right:20px!important;}.email-shell-card-pad{padding-left:20px!important;padding-right:20px!important;}.email-shell-footer-pad{padding:18px 18px 20px!important;}.email-shell-mobile-block,.email-shell-mobile-block td{display:block!important;width:100%!important;}.email-shell-logo-col{display:block!important;width:100%!important;padding-right:0!important;padding-bottom:16px!important;}.email-shell-headline{font-size:24px!important;line-height:30px!important;}.email-shell-subheadline{font-size:15px!important;line-height:24px!important;}.email-shell-supportline{font-size:13px!important;line-height:21px!important;}.email-shell-button{display:block!important;width:100%!important;}.email-shell-tile{display:block!important;width:100%!important;padding:0 0 10px!important;}.email-shell-content img{max-width:100%!important;height:auto!important;}.email-shell-content table{width:100%!important;}.email-shell-iframe-safe{width:100%!important;}}</style></head><body style="margin:0;padding:0;background:#F4F7FB;">'
+            . '<style>body,table,td,a{font-family:Arial,Helvetica,sans-serif;}body{margin:0!important;padding:0!important;}table{border-collapse:separate;mso-table-lspace:0pt;mso-table-rspace:0pt;}img{max-width:100%!important;height:auto!important;border:0;display:block;outline:none;text-decoration:none;}.email-shell-box,.email-shell-box *{box-sizing:border-box;}.email-shell-hero-copy,.email-shell-hero-copy div,.email-shell-headline,.email-shell-subheadline,.email-shell-supportline{word-break:break-word!important;overflow-wrap:anywhere!important;}.email-shell-logo-wrap,.email-shell-logo-lock,.email-shell-logo-img{overflow:hidden!important;}@media only screen and (max-width:620px){.email-shell{width:100%!important;max-width:100%!important;}.email-shell-hero-pad{padding-left:18px!important;padding-right:18px!important;}.email-shell-card-pad{padding-left:20px!important;padding-right:20px!important;}.email-shell-footer-pad{padding:18px 18px 20px!important;}.email-shell-mobile-block,.email-shell-mobile-block tbody,.email-shell-mobile-block tr,.email-shell-mobile-block td{display:block!important;width:100%!important;max-width:100%!important;}.email-shell-topbar,.email-shell-topbar tbody,.email-shell-topbar tr,.email-shell-topbar td{display:block!important;width:100%!important;}.email-shell-topbar td + td{padding-top:10px!important;text-align:left!important;}.email-shell-logo-col{display:block!important;width:100%!important;max-width:100%!important;padding-right:0!important;padding-bottom:14px!important;}.email-shell-logo-wrap{max-width:180px!important;}.email-shell-logo-lock{max-width:180px!important;}.email-shell-logo-img{max-width:180px!important;}.email-shell-logo-fallback{max-width:180px!important;font-size:22px!important;line-height:28px!important;}.email-shell-hero-copy{display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important;}.email-shell-headline{font-size:22px!important;line-height:28px!important;}.email-shell-subheadline{font-size:15px!important;line-height:22px!important;}.email-shell-supportline{font-size:13px!important;line-height:20px!important;}.email-shell-button{display:block!important;width:100%!important;}.email-shell-tile{display:block!important;width:100%!important;padding:0 0 10px!important;}.email-shell-content img{max-width:100%!important;height:auto!important;}.email-shell-content table{width:100%!important;}.email-shell-iframe-safe{width:100%!important;}}</style></head><body style="margin:0;padding:0;background:#F4F7FB;">'
             . '<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">' . e($preheader) . '</div>'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F4F7FB;"><tr><td align="center" style="padding:28px 12px 40px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="email-shell" style="width:100%;max-width:600px;">'
             . '<tr><td style="padding-bottom:18px;">'
-            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:' . e($primary) . ';border:1px solid #163257;border-radius:24px;overflow:hidden;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="email-shell-box" style="width:100%;max-width:600px;background:' . e($primary) . ';border:1px solid #163257;border-radius:24px;overflow:hidden;box-sizing:border-box;">'
             . '<tr><td style="height:4px;background:' . e($accent) . ';font-size:0;line-height:0;">&nbsp;</td></tr>'
             . '<tr><td class="email-shell-hero-pad" style="padding:22px 30px 0;">'
-            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="email-shell-topbar"><tr>'
             . '<td valign="middle">' . $headerPill . '</td>'
-            . '<td align="right" valign="middle" style="font-size:12px;line-height:18px;color:#9CB3CE;">' . $heroMeta . '</td>'
+            . '<td align="right" valign="middle" style="font-size:12px;line-height:18px;color:#9CB3CE;word-break:break-word;overflow-wrap:anywhere;">' . $heroMeta . '</td>'
             . '</tr></table>'
             . '</td></tr>'
             . '<tr><td class="email-shell-hero-pad" style="padding:18px 30px 10px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="email-shell-mobile-block"><tr>'
-            . '<td valign="top" width="210" class="email-shell-logo-col" style="padding:0 24px 0 0;">' . $logoCard . '</td>'
-            . '<td valign="top" width="100%">'
-            . ($tagline !== '' ? '<div style="font-size:13px;line-height:20px;color:#AFC1D7;font-weight:600;letter-spacing:0.2px;">' . e($tagline) . '</div>' : '')
-            . '<div class="email-shell-headline" style="margin-top:10px;font-size:30px;line-height:37px;font-weight:700;color:#FFFFFF;letter-spacing:0;">' . e($subject) . '</div>'
-            . '<div class="email-shell-subheadline" style="margin-top:12px;font-size:16px;line-height:25px;color:#D8E5F5;max-width:430px;">' . e($subheadline) . '</div>'
-            . '<div class="email-shell-supportline" style="margin-top:12px;font-size:13px;line-height:21px;color:#9CB7D4;max-width:430px;">' . e($heroSupportLine) . '</div>'
+            . '<td valign="top" width="220" class="email-shell-logo-col" style="width:220px;max-width:220px;padding:0 20px 0 0;overflow:hidden;">' . $logoCard . '</td>'
+            . '<td valign="top" width="100%" class="email-shell-hero-copy" style="width:100%;max-width:100%;min-width:0;overflow:hidden;">'
+            . ($tagline !== '' ? '<div style="font-size:13px;line-height:20px;color:#AFC1D7;font-weight:600;letter-spacing:0.2px;word-break:break-word;overflow-wrap:anywhere;">' . e($tagline) . '</div>' : '')
+            . '<div class="email-shell-headline" style="margin-top:10px;font-size:28px;line-height:34px;font-weight:700;color:#FFFFFF;letter-spacing:0;word-break:break-word;overflow-wrap:anywhere;">' . e($subject) . '</div>'
+            . '<div class="email-shell-subheadline" style="margin-top:12px;font-size:16px;line-height:24px;color:#D8E5F5;max-width:100%;word-break:break-word;overflow-wrap:anywhere;">' . e($subheadline) . '</div>'
+            . '<div class="email-shell-supportline" style="margin-top:12px;font-size:13px;line-height:21px;color:#9CB7D4;max-width:100%;word-break:break-word;overflow-wrap:anywhere;">' . e($heroSupportLine) . '</div>'
             . '</td>'
             . '</tr></table>'
             . '</td></tr>'
