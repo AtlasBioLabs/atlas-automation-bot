@@ -14,8 +14,8 @@
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `business_profiles` WRITE;
 /*!40000 ALTER TABLE `business_profiles` DISABLE KEYS */;
-INSERT IGNORE INTO `business_profiles` VALUES
-(1,'Atlas BioLabs','Atlas BioLabs','Peptide sourcing support for qualified B2B buyers','Peptide supply and sourcing','Atlas BioLabs','no-reply@example.com','','admin@example.com','Business address placeholder','','','#0A1A2F','#FFFFFF','#2E6BFF','You are receiving this professional B2B email from Atlas BioLabs. This message is intended for qualified business sourcing conversations. No medical or human-use claims are made. You can unsubscribe using the link included in this email.','Atlas BioLabs\nPeptide sourcing support, MOQ flexibility, documentation support, batch transparency, and supply coordination.\nBusiness address placeholder',30,'Africa/Douala',1,'2026-05-12 04:53:36','2026-05-12 04:53:36');
+INSERT IGNORE INTO `business_profiles` (`id`,`business_name`,`brand_name`,`tagline`,`industry`,`sender_name`,`sender_email`,`reply_to_email`,`admin_notification_email`,`business_address`,`website_url`,`company_profile_url`,`logo_url`,`primary_color`,`secondary_color`,`accent_color`,`compliance_footer`,`default_signature`,`daily_send_limit`,`timezone`,`active`,`created_at`,`updated_at`) VALUES
+(1,'Atlas BioLabs','Atlas BioLabs','Precision Research Compounds','Peptide supply and sourcing','Atlas BioLabs','hello@atlasbiolabs.co','hello@atlasbiolabs.co','hello@atlasbiolabs.co','Atlas BioLabs, United States','https://www.atlasbiolabs.co','https://www.atlasbiolabs.co/about','','#0A1A2F','#FFFFFF','#2E6BFF','You are receiving this professional B2B email from Atlas BioLabs because your company may be relevant to sourcing, documentation, MOQ, or qualified supply conversations. No medical or human-use claims are made.','Atlas BioLabs\nPrecision Research Compounds\nhello@atlasbiolabs.co\nhttps://www.atlasbiolabs.co',30,'Africa/Douala',1,'2026-05-12 04:53:36','2026-05-12 04:53:36');
 /*!40000 ALTER TABLE `business_profiles` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -47,28 +47,30 @@ LOCK TABLES `settings` WRITE;
 /*!40000 ALTER TABLE `settings` DISABLE KEYS */;
 INSERT IGNORE INTO `settings` VALUES
 (1,1,'daily_send_limit','30','2026-05-12 04:31:27','2026-05-12 06:58:38'),
-(2,1,'admin_notification_email','admin@example.com','2026-05-12 04:31:27','2026-05-12 04:53:36'),
+(2,1,'admin_notification_email','hello@atlasbiolabs.co','2026-05-12 04:31:27','2026-05-12 04:53:36'),
 (3,1,'sender_name','Atlas BioLabs','2026-05-12 04:31:27','2026-05-12 04:53:36'),
-(4,1,'sender_email','no-reply@example.com','2026-05-12 04:31:27','2026-05-12 04:53:36'),
-(5,1,'business_address','Business address placeholder','2026-05-12 04:31:27','2026-05-12 06:58:38'),
+(4,1,'sender_email','hello@atlasbiolabs.co','2026-05-12 04:31:27','2026-05-12 04:53:36'),
+(5,1,'business_address','Atlas BioLabs, United States','2026-05-12 04:31:27','2026-05-12 06:58:38'),
 (6,1,'email_provider','log','2026-05-12 04:31:27','2026-05-12 04:53:36'),
 (7,1,'followup_1_days','3','2026-05-12 04:31:27','2026-05-12 06:58:38'),
 (8,1,'followup_2_days','7','2026-05-12 04:31:27','2026-05-12 06:58:38'),
 (9,1,'lead_categories','Skincare / cosmetic formulators\nIngredient distributors\nSupplement / private-label teams\nContract manufacturers\nResearch supply buyers\nAesthetic / beauty product developers\nOther','2026-05-12 04:56:04','2026-05-12 04:56:04'),
 (13,1,'APP_NAME','Atlas BioLabs','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (14,1,'BUSINESS_NAME','Atlas BioLabs','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(15,1,'BUSINESS_TAGLINE','Peptide sourcing support for qualified B2B buyers','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(15,1,'BUSINESS_TAGLINE','Precision Research Compounds','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (16,1,'MAIL_PROVIDER','log','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (17,1,'MAIL_FROM_NAME','Atlas BioLabs','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(18,1,'MAIL_FROM_EMAIL','no-reply@example.com','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(19,1,'MAIL_REPLY_TO','','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(18,1,'MAIL_FROM_EMAIL','hello@atlasbiolabs.co','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(19,1,'MAIL_REPLY_TO','hello@atlasbiolabs.co','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (20,1,'MAIL_SMTP_HOST','','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (21,1,'MAIL_SMTP_PORT','587','2026-05-12 06:58:38','2026-05-12 06:58:38'),
 (22,1,'MAIL_SMTP_USER','','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(23,1,'ADMIN_EMAIL','admin@example.com','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(24,1,'DEFAULT_SIGNATURE','Atlas BioLabs\nPeptide sourcing support, MOQ flexibility, documentation support, batch transparency, and supply coordination.\nBusiness address placeholder','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(25,1,'COMPLIANCE_FOOTER','You are receiving this professional B2B email from Atlas BioLabs. This message is intended for qualified business sourcing conversations. No medical or human-use claims are made. You can unsubscribe using the link included in this email.','2026-05-12 06:58:38','2026-05-12 06:58:38'),
-(26,1,'UNSUBSCRIBE_FOOTER_TEXT','You can unsubscribe using the link included in this email.','2026-05-12 06:58:38','2026-05-12 06:58:38');
+(23,1,'ADMIN_EMAIL','hello@atlasbiolabs.co','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(24,1,'DEFAULT_SIGNATURE','Atlas BioLabs\nPrecision Research Compounds\nhello@atlasbiolabs.co\nhttps://www.atlasbiolabs.co','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(25,1,'COMPLIANCE_FOOTER','You are receiving this professional B2B email from Atlas BioLabs because your company may be relevant to sourcing, documentation, MOQ, or qualified supply conversations. No medical or human-use claims are made.','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(26,1,'UNSUBSCRIBE_FOOTER_TEXT','You can unsubscribe using the link included in this email.','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(27,1,'WEBSITE_URL','https://www.atlasbiolabs.co','2026-05-12 06:58:38','2026-05-12 06:58:38'),
+(28,1,'COMPANY_PROFILE_URL','https://www.atlasbiolabs.co/about','2026-05-12 06:58:38','2026-05-12 06:58:38');
 /*!40000 ALTER TABLE `settings` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;

@@ -2,7 +2,7 @@
 
 $fields = [
     'business_name', 'brand_name', 'tagline', 'industry', 'sender_name', 'sender_email', 'reply_to_email',
-    'admin_notification_email', 'business_address', 'website_url', 'logo_url', 'primary_color', 'secondary_color',
+    'admin_notification_email', 'business_address', 'website_url', 'company_profile_url', 'logo_url', 'primary_color', 'secondary_color',
     'accent_color', 'compliance_footer', 'default_signature', 'daily_send_limit', 'timezone',
 ];
 
@@ -50,14 +50,14 @@ if (!$errors) {
         $stmt = Database::pdo()->prepare(
             'UPDATE business_profiles
              SET business_name = ?, brand_name = ?, tagline = ?, industry = ?, sender_name = ?, sender_email = ?, reply_to_email = ?,
-                 admin_notification_email = ?, business_address = ?, website_url = ?, logo_url = ?, primary_color = ?, secondary_color = ?,
+                 admin_notification_email = ?, business_address = ?, website_url = ?, company_profile_url = ?, logo_url = ?, primary_color = ?, secondary_color = ?,
                  accent_color = ?, compliance_footer = ?, default_signature = ?, daily_send_limit = ?, timezone = ?, active = ?, updated_at = NOW()
              WHERE id = ?'
         );
         $stmt->execute([
             $business['business_name'], $business['brand_name'], $business['tagline'], $business['industry'], $business['sender_name'],
             $business['sender_email'], $business['reply_to_email'], $business['admin_notification_email'], $business['business_address'],
-            $business['website_url'], $business['logo_url'], $business['primary_color'], $business['secondary_color'], $business['accent_color'],
+            $business['website_url'], $business['company_profile_url'], $business['logo_url'], $business['primary_color'], $business['secondary_color'], $business['accent_color'],
             $business['compliance_footer'], $business['default_signature'], $business['daily_send_limit'], $business['timezone'],
             $business['active'], $business['id'],
         ]);
@@ -66,14 +66,14 @@ if (!$errors) {
         $stmt = Database::pdo()->prepare(
             'INSERT INTO business_profiles
              (business_name, brand_name, tagline, industry, sender_name, sender_email, reply_to_email, admin_notification_email,
-              business_address, website_url, logo_url, primary_color, secondary_color, accent_color, compliance_footer,
+              business_address, website_url, company_profile_url, logo_url, primary_color, secondary_color, accent_color, compliance_footer,
               default_signature, daily_send_limit, timezone, active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
         );
         $stmt->execute([
             $business['business_name'], $business['brand_name'], $business['tagline'], $business['industry'], $business['sender_name'],
             $business['sender_email'], $business['reply_to_email'], $business['admin_notification_email'], $business['business_address'],
-            $business['website_url'], $business['logo_url'], $business['primary_color'], $business['secondary_color'], $business['accent_color'],
+            $business['website_url'], $business['company_profile_url'], $business['logo_url'], $business['primary_color'], $business['secondary_color'], $business['accent_color'],
             $business['compliance_footer'], $business['default_signature'], $business['daily_send_limit'], $business['timezone'], $business['active'],
         ]);
         $savedBusinessId = (int) Database::pdo()->lastInsertId();

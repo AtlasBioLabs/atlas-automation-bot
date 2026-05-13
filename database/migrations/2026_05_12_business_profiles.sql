@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS business_profiles (
   admin_notification_email VARCHAR(190) NULL,
   business_address TEXT NOT NULL,
   website_url VARCHAR(255) NULL,
+  company_profile_url VARCHAR(255) NULL,
   logo_url VARCHAR(255) NULL,
   primary_color VARCHAR(20) NOT NULL DEFAULT '#0A1A2F',
   secondary_color VARCHAR(20) NOT NULL DEFAULT '#FFFFFF',
@@ -26,30 +27,32 @@ CREATE TABLE IF NOT EXISTS business_profiles (
 
 INSERT INTO business_profiles (
   id, business_name, brand_name, tagline, industry, sender_name, sender_email, reply_to_email,
-  admin_notification_email, business_address, website_url, logo_url, primary_color, secondary_color,
+  admin_notification_email, business_address, website_url, company_profile_url, logo_url, primary_color, secondary_color,
   accent_color, compliance_footer, default_signature, daily_send_limit, timezone, active, created_at, updated_at
 ) VALUES (
   1,
   'Atlas BioLabs',
   'Atlas BioLabs',
-  'Peptide sourcing support for qualified B2B buyers',
+  'Precision Research Compounds',
   'Peptide supply and sourcing',
   'Atlas BioLabs',
-  'no-reply@example.com',
-  '',
-  'admin@example.com',
-  'Business address placeholder',
-  '',
+  'hello@atlasbiolabs.co',
+  'hello@atlasbiolabs.co',
+  'hello@atlasbiolabs.co',
+  'Atlas BioLabs, United States',
+  'https://www.atlasbiolabs.co',
+  'https://www.atlasbiolabs.co/about',
   '',
   '#0A1A2F',
   '#FFFFFF',
   '#2E6BFF',
-  'You are receiving this professional B2B email from Atlas BioLabs. This message is intended for qualified business sourcing conversations. No medical or human-use claims are made. You can unsubscribe using the link included in this email.',
+  'You are receiving this professional B2B email from Atlas BioLabs because your company may be relevant to sourcing, documentation, MOQ, or qualified supply conversations. No medical or human-use claims are made.',
   'Atlas BioLabs
-Peptide sourcing support, MOQ flexibility, documentation support, batch transparency, and supply coordination.
-Business address placeholder',
+Precision Research Compounds
+hello@atlasbiolabs.co
+https://www.atlasbiolabs.co',
   30,
-  'UTC',
+  'Africa/Douala',
   1,
   NOW(),
   NOW()

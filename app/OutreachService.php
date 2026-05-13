@@ -370,12 +370,18 @@ final class OutreachService
 
     private static function queueRenderPayload(array $row, array $business): array
     {
-        if (!empty($row['rendered_subject']) && (!empty($row['rendered_html']) || !empty($row['rendered_text']))) {
+        $snapshot = [
+            'subject' => (string) ($row['rendered_subject'] ?? ''),
+            'preheader' => (string) ($row['rendered_preheader'] ?? ''),
+            'html' => (string) ($row['rendered_html'] ?? ''),
+            'text' => (string) ($row['rendered_text'] ?? ''),
+        ];
+        if (!empty($row['rendered_subject']) && (!empty($row['rendered_html']) || !empty($row['rendered_text'])) && !Mailer::renderedContentNeedsRefresh($snapshot, $business)) {
             return [
-                'subject' => (string) $row['rendered_subject'],
-                'preheader' => (string) ($row['rendered_preheader'] ?? ''),
-                'html' => (string) ($row['rendered_html'] ?? ''),
-                'text' => (string) ($row['rendered_text'] ?? ''),
+                'subject' => $snapshot['subject'],
+                'preheader' => $snapshot['preheader'],
+                'html' => $snapshot['html'],
+                'text' => $snapshot['text'],
             ];
         }
 

@@ -17,7 +17,7 @@
       <div class="col-12">
         <label class="form-label">Plain text fallback</label>
         <textarea class="form-control" name="body_text" rows="10" required><?= e($template['body_text'] ?? $template['body'] ?? '') ?></textarea>
-        <div class="form-text">Supported variables: {{contact_name}}, {{company_name}}, {{category}}, {{unsubscribe_link}}, {{business_name}}, {{brand_name}}, {{business_tagline}}, {{business_logo_url}}, {{website_url}}, {{sender_name}}, {{business_address}}, {{default_signature}}, {{compliance_footer}}, {{unsubscribe_footer_text}}</div>
+        <div class="form-text">Supported variables: {{contact_name}}, {{company_name}}, {{category}}, {{unsubscribe_link}}, {{business_name}}, {{brand_name}}, {{business_tagline}}, {{business_logo_url}}, {{website_url}}, {{company_profile_url}}, {{sender_name}}, {{sender_email}}, {{reply_to_email}}, {{business_address}}, {{default_signature}}, {{compliance_footer}}, {{unsubscribe_footer_text}}</div>
       </div>
       <div class="col-12">
         <div class="d-grid d-md-flex gap-2 action-stack">

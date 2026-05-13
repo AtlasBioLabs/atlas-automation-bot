@@ -40,6 +40,7 @@ CREATE TABLE `business_profiles` (
   `admin_notification_email` varchar(190) DEFAULT NULL,
   `business_address` text NOT NULL,
   `website_url` varchar(255) DEFAULT NULL,
+  `company_profile_url` varchar(255) DEFAULT NULL,
   `logo_url` varchar(255) DEFAULT NULL,
   `primary_color` varchar(20) NOT NULL DEFAULT '#0A1A2F',
   `secondary_color` varchar(20) NOT NULL DEFAULT '#FFFFFF',

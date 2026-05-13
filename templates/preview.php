@@ -37,7 +37,7 @@ $selectedLead ??= $leads[0] ?? [
     'business_profile_id' => $businessId,
     'contact_name' => 'Sample Contact',
     'company_name' => 'Sample Company',
-    'email' => 'sample@example.com',
+    'email' => 'hello@atlasbiolabs.co',
     'category' => 'Other',
     'unsubscribe_token' => bin2hex(random_bytes(8)),
 ];

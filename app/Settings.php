@@ -15,6 +15,8 @@ final class Settings
         'MAIL_REPLY_TO' => 'reply_to_email',
         'ADMIN_EMAIL' => 'admin_notification_email',
         'BUSINESS_ADDRESS' => 'business_address',
+        'WEBSITE_URL' => 'website_url',
+        'COMPANY_PROFILE_URL' => 'company_profile_url',
         'DEFAULT_SIGNATURE' => 'default_signature',
         'COMPLIANCE_FOOTER' => 'compliance_footer',
         'DAILY_SEND_LIMIT' => 'daily_send_limit',
@@ -100,6 +102,8 @@ final class Settings
         $business['reply_to_email'] = (string) self::option('MAIL_REPLY_TO', $business['reply_to_email'], $businessProfileId);
         $business['admin_notification_email'] = (string) self::option('ADMIN_EMAIL', $business['admin_notification_email'], $businessProfileId);
         $business['business_address'] = (string) self::option('BUSINESS_ADDRESS', $business['business_address'], $businessProfileId);
+        $business['website_url'] = (string) self::option('WEBSITE_URL', $business['website_url'] ?? '', $businessProfileId);
+        $business['company_profile_url'] = (string) self::option('COMPANY_PROFILE_URL', $business['company_profile_url'] ?? '', $businessProfileId);
         $business['default_signature'] = (string) self::option('DEFAULT_SIGNATURE', $business['default_signature'], $businessProfileId);
         $business['compliance_footer'] = (string) self::option('COMPLIANCE_FOOTER', $business['compliance_footer'], $businessProfileId);
         $business['daily_send_limit'] = (int) self::option('DAILY_SEND_LIMIT', $business['daily_send_limit'], $businessProfileId);

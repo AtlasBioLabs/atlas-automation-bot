@@ -17,6 +17,7 @@ $business = [
     'admin_notification_email' => '',
     'business_address' => '',
     'website_url' => '',
+    'company_profile_url' => '',
     'logo_url' => '',
     'primary_color' => '#0A1A2F',
     'secondary_color' => '#FFFFFF',

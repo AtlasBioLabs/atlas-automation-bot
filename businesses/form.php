@@ -18,7 +18,8 @@ $followup2 = $_POST['followup_2_days'] ?? ($formBusinessId ? Settings::get('foll
       <div class="col-md-4"><label class="form-label">Reply-to email</label><input class="form-control" type="email" name="reply_to_email" value="<?= e($business['reply_to_email']) ?>"></div>
       <div class="col-md-6"><label class="form-label">Admin notification email</label><input class="form-control" type="email" name="admin_notification_email" value="<?= e($business['admin_notification_email']) ?>"></div>
       <div class="col-md-6"><label class="form-label">Website URL</label><input class="form-control" name="website_url" value="<?= e($business['website_url']) ?>"></div>
-      <div class="col-md-12"><label class="form-label">Logo URL</label><input class="form-control" name="logo_url" value="<?= e($business['logo_url']) ?>"></div>
+      <div class="col-md-6"><label class="form-label">Company profile URL</label><input class="form-control" name="company_profile_url" value="<?= e($business['company_profile_url'] ?? '') ?>"></div>
+      <div class="col-md-6"><label class="form-label">Logo URL</label><input class="form-control" name="logo_url" value="<?= e($business['logo_url']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Primary color</label><input class="form-control" name="primary_color" required value="<?= e($business['primary_color']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Secondary color</label><input class="form-control" name="secondary_color" required value="<?= e($business['secondary_color']) ?>"></div>
       <div class="col-md-4"><label class="form-label">Accent color</label><input class="form-control" name="accent_color" required value="<?= e($business['accent_color']) ?>"></div>

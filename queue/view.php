@@ -120,12 +120,18 @@ $leadForRender = [
     'category' => $queue['category'] ?? 'Other',
     'unsubscribe_token' => $queue['unsubscribe_token'] ?? '',
 ];
-$render = (!empty($queue['rendered_subject']) && (!empty($queue['rendered_html']) || !empty($queue['rendered_text'])))
+$storedSnapshot = [
+    'subject' => (string) ($queue['rendered_subject'] ?? ''),
+    'preheader' => (string) ($queue['rendered_preheader'] ?? ''),
+    'html' => (string) ($queue['rendered_html'] ?? ''),
+    'text' => (string) ($queue['rendered_text'] ?? ''),
+];
+$render = (!empty($queue['rendered_subject']) && (!empty($queue['rendered_html']) || !empty($queue['rendered_text'])) && !Mailer::renderedContentNeedsRefresh($storedSnapshot, $business))
     ? [
-        'subject' => (string) $queue['rendered_subject'],
-        'preheader' => (string) ($queue['rendered_preheader'] ?? ''),
-        'html' => (string) ($queue['rendered_html'] ?? ''),
-        'text' => (string) ($queue['rendered_text'] ?? ''),
+        'subject' => $storedSnapshot['subject'],
+        'preheader' => $storedSnapshot['preheader'],
+        'html' => $storedSnapshot['html'],
+        'text' => $storedSnapshot['text'],
         'variables' => json_decode((string) ($queue['rendered_variables'] ?? ''), true) ?: Mailer::templateVariables($leadForRender, $business),
         'unsubscribe_link' => Mailer::templateVariables($leadForRender, $business)['{{unsubscribe_link}}'] ?? '',
         'missing_variables' => [],

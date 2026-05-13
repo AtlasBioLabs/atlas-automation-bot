@@ -81,12 +81,12 @@ if ($sampleRow) {
         'text' => (string) ($sampleRow['rendered_text'] ?? ''),
     ];
 }
-if ($preview === null || ($preview['subject'] === '' && !empty($campaign['template_name']))) {
+if ($preview === null || ($preview['subject'] === '' && !empty($campaign['template_name'])) || Mailer::renderedContentNeedsRefresh($preview ?? [], $business)) {
     $leadForRender = [
         'business_profile_id' => $businessId,
         'contact_name' => $sampleRow['contact_name'] ?? 'Sample Contact',
         'company_name' => $sampleRow['company_name'] ?? 'Sample Company',
-        'email' => $sampleRow['email'] ?? 'sample@example.com',
+        'email' => $sampleRow['email'] ?? 'hello@atlasbiolabs.co',
         'category' => 'Other',
         'unsubscribe_token' => '',
     ];
