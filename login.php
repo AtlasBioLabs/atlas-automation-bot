@@ -11,13 +11,18 @@ if (Auth::user()) {
 
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf();
-    $email = normalize_email((string) ($_POST['email'] ?? ''));
-    $password = (string) ($_POST['password'] ?? '');
-    if (Auth::attempt($email, $password)) {
-        redirect('/dashboard.php');
+    if (!csrf_is_valid()) {
+        http_response_code(419);
+        regenerate_csrf_token();
+        $error = 'Your login session expired. Please try again.';
+    } else {
+        $email = normalize_email((string) ($_POST['email'] ?? ''));
+        $password = (string) ($_POST['password'] ?? '');
+        if (Auth::attempt($email, $password)) {
+            redirect('/dashboard.php');
+        }
+        $error = 'Invalid email or password.';
     }
-    $error = 'Invalid email or password.';
 }
 
 render_header('Admin Login');

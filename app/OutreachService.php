@@ -63,7 +63,11 @@ final class OutreachService
 
         $missing = BusinessProfile::requiredMailFieldsMissing($business);
         if ($missing) {
-            return ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'message' => 'Business profile is missing required email fields: ' . implode(', ', $missing)];
+            $messages = array_map(
+                static fn (string $field): string => business_field_label($field) . ' is missing from business profile settings.',
+                $missing
+            );
+            return ['processed' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'message' => implode(' ', $messages)];
         }
 
         $limit = (int) $business['daily_send_limit'];

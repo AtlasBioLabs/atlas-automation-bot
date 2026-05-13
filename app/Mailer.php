@@ -42,7 +42,7 @@ final class Mailer
             '{{business_logo_url}}' => $business['logo_url'] ?? '',
             '{{sender_name}}' => $business['sender_name'] ?? '',
             '{{sender_email}}' => $business['sender_email'] ?? '',
-            '{{reply_to_email}}' => ($business['reply_to_email'] ?? '') !== '' ? ($business['reply_to_email'] ?? '') : ($business['sender_email'] ?? ''),
+            '{{reply_to_email}}' => $business['reply_to_email'] ?? '',
             '{{business_address}}' => $business['business_address'] ?? '',
             '{{default_signature}}' => $business['default_signature'] ?? '',
             '{{compliance_footer}}' => $business['compliance_footer'] ?? '',
@@ -105,9 +105,13 @@ final class Mailer
         $base = self::baseResultContext($provider, $business, $toEmail);
         $missing = BusinessProfile::requiredMailFieldsMissing($business);
         if ($missing) {
+            $messages = array_map(
+                static fn (string $field): string => business_field_label($field) . ' is missing from business profile settings.',
+                $missing
+            );
             return self::mergeResult($base, [
                 'sent' => false,
-                'error' => 'Business profile is missing required email fields: ' . implode(', ', $missing),
+                'error' => implode(' ', $messages),
             ]);
         }
 
@@ -276,9 +280,9 @@ final class Mailer
         $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? $business['unsubscribe_footer_text'] ?? ''));
         $footer = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), $unsubscribeText);
         $address = trim((string) $business['business_address']);
-        $brand = trim((string) ($business['brand_name'] ?? $business['business_name'] ?? ''));
+        $brand = trim((string) ($business['business_name'] ?? $business['brand_name'] ?? ''));
         $tagline = trim((string) ($business['tagline'] ?? ''));
-        $contactEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? $business['reply_to_email'] ?? $business['sender_email'] ?? ''));
+        $contactEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $business['reply_to_email'] ?? ''));
         $website = trim((string) ($variables['{{website_url}}'] ?? $business['website_url'] ?? ''));
         $unsubscribeLink = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
 
@@ -665,6 +669,7 @@ final class Mailer
     {
         $logo = trim((string) ($business['logo_url'] ?? ''));
         $brand = trim((string) ($business['brand_name'] ?? $business['business_name'] ?? 'Business profile'));
+        $footerBusinessName = trim((string) ($business['business_name'] ?? $brand));
         $tagline = trim((string) ($business['tagline'] ?? ''));
         $website = trim((string) ($business['website_url'] ?? ''));
         $companyProfileUrl = trim((string) ($business['company_profile_url'] ?? $website));
@@ -674,8 +679,8 @@ final class Mailer
         $signature = nl2br(e((string) ($variables['{{default_signature}}'] ?? '')));
         $unsubscribe = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
         $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? ''));
-        $supportEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? ''));
-        $contactEmail = $supportEmail !== '' ? $supportEmail : trim((string) ($variables['{{sender_email}}'] ?? ''));
+        $supportEmail = trim((string) ($variables['{{reply_to_email}}'] ?? ''));
+        $contactEmail = $supportEmail;
         $footerCompliance = self::cleanComplianceFooter((string) ($variables['{{compliance_footer}}'] ?? $business['compliance_footer'] ?? ''), $unsubscribeText);
         $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Premium sourcing communication for qualified B2B buyers.'));
 
@@ -764,7 +769,7 @@ final class Mailer
             . '</td></tr>'
             . '<tr><td style="padding-top:16px;">'
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#EEF4FA;border:1px solid #D9E4F1;border-radius:20px;"><tr><td class="email-shell-footer-pad" style="padding:22px 24px;">'
-            . '<div style="font-size:12px;line-height:18px;font-weight:700;color:#0A1A2F;">' . e($brand) . '</div>'
+            . '<div style="font-size:12px;line-height:18px;font-weight:700;color:#0A1A2F;">' . e($footerBusinessName) . '</div>'
             . ($tagline !== '' ? '<div style="margin-top:4px;font-size:12px;line-height:19px;color:#5B6B7E;">' . e($tagline) . '</div>' : '')
             . (($contactEmail !== '' || $website !== '') ? '<div style="margin-top:10px;font-size:12px;line-height:19px;color:#5B6B7E;">'
                 . ($contactEmail !== '' ? '<a href="mailto:' . e($contactEmail) . '" style="color:#5B6B7E;text-decoration:none;">' . e($contactEmail) . '</a>' : '')

@@ -108,9 +108,6 @@ final class Settings
         $business['compliance_footer'] = (string) self::option('COMPLIANCE_FOOTER', $business['compliance_footer'], $businessProfileId);
         $business['unsubscribe_footer_text'] = (string) self::option('UNSUBSCRIBE_FOOTER_TEXT', 'You can unsubscribe using the link included in this email.', $businessProfileId);
         $business['daily_send_limit'] = (int) self::option('DAILY_SEND_LIMIT', $business['daily_send_limit'], $businessProfileId);
-        if ($business['reply_to_email'] === '') {
-            $business['reply_to_email'] = $business['sender_email'];
-        }
         if ($business['company_profile_url'] === '') {
             $business['company_profile_url'] = $business['website_url'];
         }

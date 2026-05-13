@@ -15,12 +15,18 @@ final class SettingsValidator
                 $errors[] = "{$emailField} must be a valid email.";
             }
         }
+        foreach (['WEBSITE_URL', 'COMPANY_PROFILE_URL'] as $urlField) {
+            $value = trim((string) ($fields[$urlField] ?? ''));
+            if ($value !== '' && !filter_var($value, FILTER_VALIDATE_URL)) {
+                $errors[] = "{$urlField} must be a valid URL.";
+            }
+        }
         foreach (['DAILY_SEND_LIMIT', 'FOLLOWUP_1_DAYS', 'FOLLOWUP_2_DAYS', 'MAIL_SMTP_PORT'] as $numberField) {
             if (!ctype_digit((string) ($fields[$numberField] ?? '')) || (int) $fields[$numberField] < 1) {
                 $errors[] = "{$numberField} must be a positive number.";
             }
         }
-        foreach (['APP_NAME', 'BUSINESS_NAME', 'MAIL_FROM_NAME', 'MAIL_FROM_EMAIL', 'BUSINESS_ADDRESS', 'COMPLIANCE_FOOTER'] as $requiredField) {
+        foreach (['APP_NAME', 'BUSINESS_NAME', 'MAIL_FROM_NAME', 'MAIL_FROM_EMAIL', 'MAIL_REPLY_TO', 'BUSINESS_ADDRESS', 'COMPLIANCE_FOOTER', 'UNSUBSCRIBE_FOOTER_TEXT'] as $requiredField) {
             if (trim((string) ($fields[$requiredField] ?? '')) === '') {
                 $errors[] = "{$requiredField} is required.";
             }

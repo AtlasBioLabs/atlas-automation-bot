@@ -27,6 +27,8 @@ $fields = [
     'MAIL_SMTP_USER' => Settings::option('MAIL_SMTP_USER', '', $businessId),
     'ADMIN_EMAIL' => $business['admin_notification_email'],
     'BUSINESS_ADDRESS' => $business['business_address'],
+    'WEBSITE_URL' => $business['website_url'] ?? '',
+    'COMPANY_PROFILE_URL' => $business['company_profile_url'] ?? '',
     'TIMEZONE' => $business['timezone'] ?: app_config('app_timezone', 'Africa/Douala'),
     'DAILY_SEND_LIMIT' => (string) $business['daily_send_limit'],
     'FOLLOWUP_1_DAYS' => Settings::option('FOLLOWUP_1_DAYS', Settings::option('followup_1_days', '3', $businessId), $businessId),
@@ -75,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = Database::pdo()->prepare(
                 'UPDATE business_profiles
                  SET business_name = ?, brand_name = ?, tagline = ?, sender_name = ?, sender_email = ?, reply_to_email = ?,
-                     admin_notification_email = ?, business_address = ?, compliance_footer = ?, default_signature = ?,
+                     admin_notification_email = ?, business_address = ?, website_url = ?, company_profile_url = ?, compliance_footer = ?, default_signature = ?,
                      daily_send_limit = ?, timezone = ?, updated_at = NOW()
                  WHERE id = ?'
             );
@@ -88,6 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fields['MAIL_REPLY_TO'],
                 $fields['ADMIN_EMAIL'],
                 $fields['BUSINESS_ADDRESS'],
+                $fields['WEBSITE_URL'],
+                $fields['COMPANY_PROFILE_URL'],
                 $fields['COMPLIANCE_FOOTER'],
                 $fields['DEFAULT_SIGNATURE'],
                 (int) $fields['DAILY_SEND_LIMIT'],
@@ -118,6 +122,8 @@ render_header('Settings');
       <div class="col-md-4"><label class="form-label">App / brand name</label><input class="form-control" name="APP_NAME" value="<?= e($fields['APP_NAME']) ?>" required></div>
       <div class="col-md-4"><label class="form-label">Business name</label><input class="form-control" name="BUSINESS_NAME" value="<?= e($fields['BUSINESS_NAME']) ?>" required></div>
       <div class="col-md-4"><label class="form-label">Business tagline</label><input class="form-control" name="BUSINESS_TAGLINE" value="<?= e($fields['BUSINESS_TAGLINE']) ?>"></div>
+      <div class="col-md-6"><label class="form-label">Website URL</label><input class="form-control" type="url" name="WEBSITE_URL" value="<?= e($fields['WEBSITE_URL']) ?>"></div>
+      <div class="col-md-6"><label class="form-label">Company profile URL</label><input class="form-control" type="url" name="COMPANY_PROFILE_URL" value="<?= e($fields['COMPANY_PROFILE_URL']) ?>"></div>
       <div class="col-12"><label class="form-label">Business address</label><textarea class="form-control" name="BUSINESS_ADDRESS" rows="3" required><?= e($fields['BUSINESS_ADDRESS']) ?></textarea></div>
       <div class="col-12"><label class="form-label">Default signature</label><textarea class="form-control" name="DEFAULT_SIGNATURE" rows="4"><?= e($fields['DEFAULT_SIGNATURE']) ?></textarea></div>
     </div></div>

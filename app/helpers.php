@@ -10,11 +10,14 @@ function start_app_session(): void
         return;
     }
 
+    $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
     session_name('atlas_outreach_session');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'secure' => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -47,11 +50,23 @@ function csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-function verify_csrf(): void
+function csrf_is_valid(): bool
 {
     start_app_session();
     $token = $_POST['csrf_token'] ?? '';
-    if (!is_string($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    return is_string($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
+function regenerate_csrf_token(): string
+{
+    start_app_session();
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf(): void
+{
+    if (!csrf_is_valid()) {
         http_response_code(419);
         exit('Invalid CSRF token.');
     }
