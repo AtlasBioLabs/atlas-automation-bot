@@ -129,6 +129,19 @@ final class OutreachService
 
             $row['business_profile_id'] = $businessProfileId;
             $rendered = self::queueRenderPayload($row, $business);
+            $pdo->prepare(
+                'UPDATE email_queue
+                 SET rendered_subject = ?, rendered_preheader = ?, rendered_html = ?, rendered_text = ?, rendered_variables = ?, updated_at = NOW()
+                 WHERE id = ? AND business_profile_id = ?'
+            )->execute([
+                $rendered['subject'],
+                $rendered['preheader'],
+                $rendered['html'],
+                $rendered['text'],
+                json_encode($rendered['variables'] ?? [], JSON_UNESCAPED_SLASHES),
+                (int) $row['id'],
+                $businessProfileId,
+            ]);
             $result = Mailer::send(
                 $row['email'],
                 $row['contact_name'] ?: $row['company_name'],
@@ -370,21 +383,6 @@ final class OutreachService
 
     private static function queueRenderPayload(array $row, array $business): array
     {
-        $snapshot = [
-            'subject' => (string) ($row['rendered_subject'] ?? ''),
-            'preheader' => (string) ($row['rendered_preheader'] ?? ''),
-            'html' => (string) ($row['rendered_html'] ?? ''),
-            'text' => (string) ($row['rendered_text'] ?? ''),
-        ];
-        if (!empty($row['rendered_subject']) && (!empty($row['rendered_html']) || !empty($row['rendered_text'])) && !Mailer::renderedContentNeedsRefresh($snapshot, $business)) {
-            return [
-                'subject' => $snapshot['subject'],
-                'preheader' => $snapshot['preheader'],
-                'html' => $snapshot['html'],
-                'text' => $snapshot['text'],
-            ];
-        }
-
         return Mailer::renderTemplate($row, $row, $business);
     }
 

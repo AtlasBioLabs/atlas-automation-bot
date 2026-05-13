@@ -106,7 +106,14 @@ final class Settings
         $business['company_profile_url'] = (string) self::option('COMPANY_PROFILE_URL', $business['company_profile_url'] ?? '', $businessProfileId);
         $business['default_signature'] = (string) self::option('DEFAULT_SIGNATURE', $business['default_signature'], $businessProfileId);
         $business['compliance_footer'] = (string) self::option('COMPLIANCE_FOOTER', $business['compliance_footer'], $businessProfileId);
+        $business['unsubscribe_footer_text'] = (string) self::option('UNSUBSCRIBE_FOOTER_TEXT', 'You can unsubscribe using the link included in this email.', $businessProfileId);
         $business['daily_send_limit'] = (int) self::option('DAILY_SEND_LIMIT', $business['daily_send_limit'], $businessProfileId);
+        if ($business['reply_to_email'] === '') {
+            $business['reply_to_email'] = $business['sender_email'];
+        }
+        if ($business['company_profile_url'] === '') {
+            $business['company_profile_url'] = $business['website_url'];
+        }
         $timezone = trim((string) ($business['timezone'] ?? ''));
         $business['timezone'] = valid_timezone_name($timezone) ? $timezone : app_config('app_timezone', 'Africa/Douala');
 

@@ -12,6 +12,7 @@ $errors = [];
 $testErrors = [];
 $testEmail = '';
 $testResult = null;
+$businessWarnings = business_profile_preview_warnings($business);
 
 $fields = [
     'APP_NAME' => $business['brand_name'],
@@ -103,6 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 render_header('Settings');
 ?>
 <?php if ($errors): ?><div class="alert alert-danger"><?= e(implode(' ', $errors)) ?></div><?php endif; ?>
+<?php if ($businessWarnings): ?>
+  <div class="alert alert-warning small">
+    <strong>Business profile warnings:</strong> <?= e(implode(' ', $businessWarnings)) ?>
+    Review these values here or in the active business profile record before sending live email.
+  </div>
+<?php endif; ?>
 <form method="post" class="row g-4">
   <?= csrf_field() ?>
   <div class="col-12">

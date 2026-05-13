@@ -25,45 +25,35 @@ We support professional {{industry}} conversations with clear coordination, prac
 
 If this is relevant for {{company_name}}, I would be glad to share more details.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 0, 1, NOW(), NOW()),
+{{default_signature}}', 0, 1, NOW(), NOW()),
 (1, 'Generic - Service business outreach', 'Other', 'Service support for {{company_name}}', 'Hello {{contact_name}},
 
 I am contacting you from {{brand_name}} regarding professional service support for businesses in {{industry}}.
 
 If {{company_name}} is reviewing outside support or vendor options, we can share capabilities, next steps, and fit criteria.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 0, 1, NOW(), NOW()),
+{{default_signature}}', 0, 1, NOW(), NOW()),
 (1, 'Generic - Product supplier outreach', 'Other', 'Supplier coordination from {{brand_name}}', 'Hello {{contact_name}},
 
 {{brand_name}} supports B2B product and supply conversations with clear documentation, practical coordination, and professional follow-up.
 
 If {{company_name}} is reviewing supplier options, we can share availability, commercial details, and next steps.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 0, 1, NOW(), NOW()),
+{{default_signature}}', 0, 1, NOW(), NOW()),
 (1, 'Generic - Follow-up 1', 'Other', 'Following up from {{brand_name}}', 'Hello {{contact_name}},
 
 I wanted to follow up on my previous note from {{brand_name}}.
 
 If this is relevant for {{company_name}}, I can share more details or route the conversation to the right next step.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 1, 1, NOW(), NOW()),
+{{default_signature}}', 1, 1, NOW(), NOW()),
 (1, 'Generic - Follow-up 2', 'Other', 'Closing the loop from {{brand_name}}', 'Hello {{contact_name}},
 
 I am closing the loop on my previous outreach.
 
 If this becomes relevant for {{company_name}}, {{brand_name}} would be glad to help with a professional B2B conversation.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 2, 1, NOW(), NOW()),
+{{default_signature}}', 2, 1, NOW(), NOW()),
 (1, 'Generic - RFQ confirmation', 'Other', 'We received your request for {{brand_name}}', 'Hello {{contact_name}},
 
 Thank you for contacting {{brand_name}}. We received your request and will review the details before following up.
@@ -75,16 +65,12 @@ I wanted to follow up on the quote conversation with {{brand_name}}.
 
 If you have questions about scope, timing, or next steps, we would be glad to help.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 3, 1, NOW(), NOW()),
+{{default_signature}}', 3, 1, NOW(), NOW()),
 (1, 'Generic - Re-engagement email', 'Other', 'Checking in from {{brand_name}}', 'Hello {{contact_name}},
 
 I am checking in from {{brand_name}} in case this is a better time to reconnect.
 
 If {{company_name}} is reviewing options in {{industry}}, we can share current capabilities and next steps.
 
-{{default_signature}}
-
-Unsubscribe: {{unsubscribe_link}}', 4, 1, NOW(), NOW())
+{{default_signature}}', 4, 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE body = VALUES(body), subject = VALUES(subject), updated_at = NOW();

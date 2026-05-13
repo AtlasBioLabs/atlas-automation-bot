@@ -335,3 +335,34 @@ function checked(bool $value): string
 {
     return $value ? ' checked' : '';
 }
+
+function business_mail_field_labels(): array
+{
+    return [
+        'sender_name' => 'Sender name',
+        'sender_email' => 'Sender email',
+        'reply_to_email' => 'Reply-to email',
+        'business_address' => 'Business address',
+        'website_url' => 'Website URL',
+        'company_profile_url' => 'Company profile URL',
+        'compliance_footer' => 'Compliance footer',
+        'unsubscribe_footer_text' => 'Unsubscribe footer text',
+    ];
+}
+
+function business_field_label(string $field): string
+{
+    return business_mail_field_labels()[$field] ?? ucwords(str_replace('_', ' ', $field));
+}
+
+function business_profile_preview_warnings(array $business): array
+{
+    $warnings = [];
+    foreach (business_mail_field_labels() as $field => $label) {
+        if (trim((string) ($business[$field] ?? '')) === '') {
+            $warnings[] = $label . ' is not configured.';
+        }
+    }
+
+    return $warnings;
+}

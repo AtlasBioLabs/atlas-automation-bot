@@ -126,7 +126,11 @@ $storedSnapshot = [
     'html' => (string) ($queue['rendered_html'] ?? ''),
     'text' => (string) ($queue['rendered_text'] ?? ''),
 ];
-$render = (!empty($queue['rendered_subject']) && (!empty($queue['rendered_html']) || !empty($queue['rendered_text'])) && !Mailer::renderedContentNeedsRefresh($storedSnapshot, $business))
+$useStoredSnapshot = (string) $queue['status'] === 'sent'
+    && !empty($queue['rendered_subject'])
+    && (!empty($queue['rendered_html']) || !empty($queue['rendered_text']))
+    && !Mailer::renderedContentNeedsRefresh($storedSnapshot, $business);
+$render = $useStoredSnapshot
     ? [
         'subject' => $storedSnapshot['subject'],
         'preheader' => $storedSnapshot['preheader'],
@@ -135,8 +139,10 @@ $render = (!empty($queue['rendered_subject']) && (!empty($queue['rendered_html']
         'variables' => json_decode((string) ($queue['rendered_variables'] ?? ''), true) ?: Mailer::templateVariables($leadForRender, $business),
         'unsubscribe_link' => Mailer::templateVariables($leadForRender, $business)['{{unsubscribe_link}}'] ?? '',
         'missing_variables' => [],
+        'business_warnings' => [],
     ]
     : Mailer::renderTemplate($queue, $leadForRender, $business);
+$businessWarnings = $render['business_warnings'] ?? [];
 
 render_header('Queue Email Detail');
 ?>
@@ -195,6 +201,12 @@ render_header('Queue Email Detail');
     </form>
   <?php endif; ?>
 </div>
+
+<?php if ($businessWarnings): ?>
+  <div class="alert alert-warning small">
+    <strong>Business profile warnings:</strong> <?= e(implode(' ', $businessWarnings)) ?>
+  </div>
+<?php endif; ?>
 
 <div class="row g-4">
   <div class="col-lg-4">

@@ -91,7 +91,7 @@ final class BusinessProfile
 
     public static function requiredMailFieldsMissing(array $business): array
     {
-        $required = ['sender_name', 'sender_email', 'business_address', 'compliance_footer'];
+        $required = ['sender_name', 'sender_email', 'reply_to_email', 'business_address', 'compliance_footer', 'unsubscribe_footer_text'];
         $missing = [];
         foreach ($required as $field) {
             if (trim((string) ($business[$field] ?? '')) === '') {

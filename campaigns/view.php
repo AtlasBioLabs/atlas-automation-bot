@@ -72,26 +72,16 @@ $skipStmt->execute([$businessId, $id]);
 $skippedRows = $skipStmt->fetchAll();
 
 $sampleRow = $recipientRows[0] ?? null;
-$preview = null;
-if ($sampleRow) {
-    $preview = [
-        'subject' => (string) ($sampleRow['rendered_subject'] ?? ''),
-        'preheader' => (string) ($sampleRow['rendered_preheader'] ?? ''),
-        'html' => (string) ($sampleRow['rendered_html'] ?? ''),
-        'text' => (string) ($sampleRow['rendered_text'] ?? ''),
-    ];
-}
-if ($preview === null || ($preview['subject'] === '' && !empty($campaign['template_name'])) || Mailer::renderedContentNeedsRefresh($preview ?? [], $business)) {
-    $leadForRender = [
-        'business_profile_id' => $businessId,
-        'contact_name' => $sampleRow['contact_name'] ?? 'Sample Contact',
-        'company_name' => $sampleRow['company_name'] ?? 'Sample Company',
-        'email' => $sampleRow['email'] ?? 'hello@atlasbiolabs.co',
-        'category' => 'Other',
-        'unsubscribe_token' => '',
-    ];
-    $preview = Mailer::renderTemplate($campaign, $leadForRender, $business);
-}
+$leadForRender = [
+    'business_profile_id' => $businessId,
+    'contact_name' => $sampleRow['contact_name'] ?? 'Sample Contact',
+    'company_name' => $sampleRow['company_name'] ?? 'Sample Company',
+    'email' => $sampleRow['email'] ?? (string) ($business['reply_to_email'] ?: $business['sender_email'] ?: 'sample@example.com'),
+    'category' => 'Other',
+    'unsubscribe_token' => '',
+];
+$preview = Mailer::renderTemplate($campaign, $leadForRender, $business);
+$businessWarnings = $preview['business_warnings'] ?? [];
 
 $tabs = [
     'overview' => 'Overview',
@@ -140,6 +130,12 @@ render_header('Campaign Detail');
   <a class="btn btn-outline-secondary" href="/campaigns/index.php">Back to campaigns</a>
   <a class="btn btn-outline-primary" href="/queue/index.php?campaign_name=<?= urlencode((string) $campaign['name']) ?>">Open queue filter</a>
 </div>
+
+<?php if ($businessWarnings): ?>
+  <div class="alert alert-warning small">
+    <strong>Business profile warnings:</strong> <?= e(implode(' ', $businessWarnings)) ?>
+  </div>
+<?php endif; ?>
 
 <div class="card shadow-sm mb-4">
   <div class="card-body">

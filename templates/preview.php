@@ -37,12 +37,13 @@ $selectedLead ??= $leads[0] ?? [
     'business_profile_id' => $businessId,
     'contact_name' => 'Sample Contact',
     'company_name' => 'Sample Company',
-    'email' => 'hello@atlasbiolabs.co',
+    'email' => (string) ($business['reply_to_email'] ?: $business['sender_email'] ?: 'sample@example.com'),
     'category' => 'Other',
     'unsubscribe_token' => bin2hex(random_bytes(8)),
 ];
 
 $preview = Mailer::renderTemplate($template, $selectedLead, $business);
+$businessWarnings = $preview['business_warnings'] ?? [];
 
 render_header('Template Preview');
 ?>
@@ -80,6 +81,11 @@ render_header('Template Preview');
 </style>
 <div class="card shadow-sm mb-4">
   <div class="card-body">
+    <?php if ($businessWarnings): ?>
+      <div class="alert alert-warning small">
+        <strong>Business profile warnings:</strong> <?= e(implode(' ', $businessWarnings)) ?>
+      </div>
+    <?php endif; ?>
     <form class="row g-3">
       <input type="hidden" name="id" value="<?= e($id) ?>">
       <div class="col-md-6">

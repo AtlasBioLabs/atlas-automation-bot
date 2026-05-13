@@ -18,7 +18,14 @@ final class Mailer
 
     public static function templateVariables(array $lead = [], ?array $business = null): array
     {
-        $business ??= isset($lead['business_profile_id']) ? BusinessProfile::find((int) $lead['business_profile_id']) : BusinessProfile::current();
+        if ($business === null) {
+            if (isset($lead['business_profile_id'])) {
+                $business = Settings::effectiveBusiness((int) $lead['business_profile_id']) ?? BusinessProfile::find((int) $lead['business_profile_id']);
+            } else {
+                $current = BusinessProfile::current();
+                $business = Settings::effectiveBusiness((int) $current['id']) ?? $current;
+            }
+        }
         $unsubscribe = '';
         if (!empty($lead['unsubscribe_token'])) {
             $unsubscribe = app_url('/unsubscribe.php?business_id=' . (int) $business['id'] . '&token=' . urlencode((string) $lead['unsubscribe_token']));
@@ -39,7 +46,7 @@ final class Mailer
             '{{business_address}}' => $business['business_address'] ?? '',
             '{{default_signature}}' => $business['default_signature'] ?? '',
             '{{compliance_footer}}' => $business['compliance_footer'] ?? '',
-            '{{unsubscribe_footer_text}}' => Settings::option('UNSUBSCRIBE_FOOTER_TEXT', 'You can unsubscribe using the link included in this email.', (int) $business['id']),
+            '{{unsubscribe_footer_text}}' => $business['unsubscribe_footer_text'] ?? 'You can unsubscribe using the link included in this email.',
             '{{contact_name}}' => $lead['contact_name'] ?? '',
             '{{company_name}}' => $lead['company_name'] ?? '',
             '{{category}}' => $lead['category'] ?? '',
@@ -86,6 +93,7 @@ final class Mailer
             'variables' => $variables,
             'missing_variables' => $missing,
             'unsubscribe_link' => $variables['{{unsubscribe_link}}'] ?? '',
+            'business_warnings' => business_profile_preview_warnings($business),
         ];
     }
 
@@ -242,7 +250,8 @@ final class Mailer
     private static function appendCompliance(string $body, array $business, array $variables = []): string
     {
         $parts = [trim($body)];
-        $footer = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), (string) Settings::option('UNSUBSCRIBE_FOOTER_TEXT', '', (int) $business['id']));
+        $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? $business['unsubscribe_footer_text'] ?? ''));
+        $footer = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), $unsubscribeText);
         $address = trim((string) ($business['business_address'] ?? ''));
         $unsubscribeLink = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
         if ($footer !== '' && !str_contains($body, $footer)) {
@@ -255,7 +264,8 @@ final class Mailer
             $parts[] = $address;
         }
         if ($unsubscribeLink !== '' && stripos($body, $unsubscribeLink) === false) {
-            $parts[] = 'You can unsubscribe here: ' . $unsubscribeLink;
+            $prefix = $unsubscribeText !== '' ? rtrim($unsubscribeText) : 'You can unsubscribe here:';
+            $parts[] = trim($prefix . ' ' . $unsubscribeLink);
         }
 
         return implode("\n\n", array_values(array_filter($parts, static fn ($part) => trim((string) $part) !== '')));
@@ -263,11 +273,12 @@ final class Mailer
 
     private static function appendComplianceHtml(string $html, array $business, array $variables = []): string
     {
-        $footer = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), (string) Settings::option('UNSUBSCRIBE_FOOTER_TEXT', '', (int) $business['id']));
+        $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? $business['unsubscribe_footer_text'] ?? ''));
+        $footer = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), $unsubscribeText);
         $address = trim((string) $business['business_address']);
         $brand = trim((string) ($business['brand_name'] ?? $business['business_name'] ?? ''));
         $tagline = trim((string) ($business['tagline'] ?? ''));
-        $senderEmail = trim((string) ($variables['{{sender_email}}'] ?? $business['sender_email'] ?? ''));
+        $contactEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? $business['reply_to_email'] ?? $business['sender_email'] ?? ''));
         $website = trim((string) ($variables['{{website_url}}'] ?? $business['website_url'] ?? ''));
         $unsubscribeLink = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
 
@@ -278,10 +289,10 @@ final class Mailer
         if ($tagline !== '') {
             $footerBlock .= '<p style="margin:0 0 8px;color:#5B6B7E;font-size:12px;line-height:18px;">' . e($tagline) . '</p>';
         }
-        if ($senderEmail !== '' || $website !== '') {
+        if ($contactEmail !== '' || $website !== '') {
             $footerBlock .= '<p style="margin:0 0 8px;color:#5B6B7E;font-size:12px;line-height:18px;">'
-                . ($senderEmail !== '' ? '<a href="mailto:' . e($senderEmail) . '" style="color:#5B6B7E;text-decoration:none;">' . e($senderEmail) . '</a>' : '')
-                . (($senderEmail !== '' && $website !== '') ? ' | ' : '')
+                . ($contactEmail !== '' ? '<a href="mailto:' . e($contactEmail) . '" style="color:#5B6B7E;text-decoration:none;">' . e($contactEmail) . '</a>' : '')
+                . (($contactEmail !== '' && $website !== '') ? ' | ' : '')
                 . ($website !== '' ? '<a href="' . e($website) . '" style="color:#5B6B7E;text-decoration:none;">' . e($website) . '</a>' : '')
                 . '</p>';
         }
@@ -292,7 +303,8 @@ final class Mailer
             $footerBlock .= '<p style="margin:0 0 8px;color:#5B6B7E;font-size:12px;line-height:18px;">' . nl2br(e($footer)) . '</p>';
         }
         if ($unsubscribeLink !== '') {
-            $footerBlock .= '<p style="margin:0;color:#5B6B7E;font-size:12px;line-height:18px;">You can unsubscribe here: <a href="' . e($unsubscribeLink) . '" style="color:#2E6BFF;">Unsubscribe</a></p>';
+            $prefix = $unsubscribeText !== '' ? e(rtrim($unsubscribeText)) : 'You can unsubscribe here:';
+            $footerBlock .= '<p style="margin:0;color:#5B6B7E;font-size:12px;line-height:18px;">' . $prefix . ' <a href="' . e($unsubscribeLink) . '" style="color:#2E6BFF;">Unsubscribe</a></p>';
         }
         if ($footerBlock === '') {
             return $html;
@@ -663,8 +675,8 @@ final class Mailer
         $unsubscribe = trim((string) ($variables['{{unsubscribe_link}}'] ?? ''));
         $unsubscribeText = trim((string) ($variables['{{unsubscribe_footer_text}}'] ?? ''));
         $supportEmail = trim((string) ($variables['{{reply_to_email}}'] ?? $variables['{{sender_email}}'] ?? ''));
-        $senderEmail = trim((string) ($variables['{{sender_email}}'] ?? ''));
-        $footerCompliance = self::cleanComplianceFooter((string) ($business['compliance_footer'] ?? ''), $unsubscribeText);
+        $contactEmail = $supportEmail !== '' ? $supportEmail : trim((string) ($variables['{{sender_email}}'] ?? ''));
+        $footerCompliance = self::cleanComplianceFooter((string) ($variables['{{compliance_footer}}'] ?? $business['compliance_footer'] ?? ''), $unsubscribeText);
         $subheadline = trim($preheader !== '' ? $preheader : ($tagline !== '' ? $tagline : 'Premium sourcing communication for qualified B2B buyers.'));
 
         $logoMarkup = $logo !== ''
@@ -673,9 +685,6 @@ final class Mailer
 
         $secondaryCtaMarkup = $companyProfileUrl !== ''
             ? '<a href="' . e($companyProfileUrl) . '" style="color:' . e($accent) . ';text-decoration:none;font-weight:600;">view our company profile</a>'
-            : '';
-        $unsubscribeMarkup = $unsubscribe !== ''
-            ? '<p style="margin:12px 0 0;color:#5B6B7E;font-size:12px;line-height:18px;">You can unsubscribe here: <a href="' . e($unsubscribe) . '" style="color:' . e($accent) . ';">Unsubscribe</a></p>'
             : '';
         $headerPill = '<span style="display:inline-block;background:#113158;border:1px solid rgba(255,255,255,0.12);color:#D6E5FF;padding:8px 13px;border-radius:999px;font-size:12px;line-height:12px;font-weight:700;letter-spacing:0.2px;">' . e($brand) . '</span>';
         $heroMeta = $website !== ''
@@ -757,14 +766,16 @@ final class Mailer
             . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#EEF4FA;border:1px solid #D9E4F1;border-radius:20px;"><tr><td class="email-shell-footer-pad" style="padding:22px 24px;">'
             . '<div style="font-size:12px;line-height:18px;font-weight:700;color:#0A1A2F;">' . e($brand) . '</div>'
             . ($tagline !== '' ? '<div style="margin-top:4px;font-size:12px;line-height:19px;color:#5B6B7E;">' . e($tagline) . '</div>' : '')
-            . (($senderEmail !== '' || $website !== '') ? '<div style="margin-top:10px;font-size:12px;line-height:19px;color:#5B6B7E;">'
-                . ($senderEmail !== '' ? '<a href="mailto:' . e($senderEmail) . '" style="color:#5B6B7E;text-decoration:none;">' . e($senderEmail) . '</a>' : '')
-                . (($senderEmail !== '' && $website !== '') ? ' | ' : '')
+            . (($contactEmail !== '' || $website !== '') ? '<div style="margin-top:10px;font-size:12px;line-height:19px;color:#5B6B7E;">'
+                . ($contactEmail !== '' ? '<a href="mailto:' . e($contactEmail) . '" style="color:#5B6B7E;text-decoration:none;">' . e($contactEmail) . '</a>' : '')
+                . (($contactEmail !== '' && $website !== '') ? ' | ' : '')
                 . ($website !== '' ? '<a href="' . e($website) . '" style="color:#5B6B7E;text-decoration:none;">' . e($website) . '</a>' : '')
                 . '</div>' : '')
             . '<div style="margin-top:10px;font-size:12px;line-height:19px;color:#5B6B7E;">' . nl2br(e((string) ($business['business_address'] ?? ''))) . '</div>'
             . ($footerCompliance !== '' ? '<div style="margin-top:12px;font-size:12px;line-height:19px;color:#5B6B7E;">' . nl2br(e($footerCompliance)) . '</div>' : '')
-            . $unsubscribeMarkup
+            . ($unsubscribe !== '' ? '<p style="margin:12px 0 0;color:#5B6B7E;font-size:12px;line-height:18px;">'
+                . ($unsubscribeText !== '' ? e(rtrim($unsubscribeText)) . ' ' : 'You can unsubscribe here: ')
+                . '<a href="' . e($unsubscribe) . '" style="color:' . e($accent) . ';">Unsubscribe</a></p>' : '')
             . '</td></tr></table>'
             . '</td></tr>'
             . '</table></td></tr></table></body></html>';
