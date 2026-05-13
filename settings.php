@@ -142,7 +142,7 @@ render_header('Settings');
       </div>
       <div class="col-md-3"><label class="form-label">Sender name</label><input class="form-control" name="MAIL_FROM_NAME" value="<?= e($fields['MAIL_FROM_NAME']) ?>" required></div>
       <div class="col-md-3"><label class="form-label">Sender email</label><input class="form-control" type="email" name="MAIL_FROM_EMAIL" value="<?= e($fields['MAIL_FROM_EMAIL']) ?>" required></div>
-      <div class="col-md-3"><label class="form-label">Reply-to email</label><input class="form-control" type="email" name="MAIL_REPLY_TO" value="<?= e($fields['MAIL_REPLY_TO']) ?>"></div>
+      <div class="col-md-3"><label class="form-label">Reply-to email</label><input class="form-control" type="email" name="MAIL_REPLY_TO" value="<?= e($fields['MAIL_REPLY_TO']) ?>" required></div>
       <div class="col-md-6"><label class="form-label">Admin notification email</label><input class="form-control" type="email" name="ADMIN_EMAIL" value="<?= e($fields['ADMIN_EMAIL']) ?>"></div>
     </div></div>
   </div>
