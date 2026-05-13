@@ -381,3 +381,35 @@ function business_profile_preview_warnings(array $business): array
 
     return $warnings;
 }
+
+function sanitize_template_body_html(string $html): string
+{
+    $html = trim($html);
+    if ($html === '') {
+        return '';
+    }
+
+    $html = preg_replace('/<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*>.*?<\/\1>/is', '', $html) ?? $html;
+    $html = preg_replace('/\s+on[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+    $html = preg_replace('/(href|src)\s*=\s*([\'"])\s*javascript:[^\'"]*\2/i', '$1="#"', $html) ?? $html;
+    $allowedTags = '<p><br><strong><b><em><i><u><ul><ol><li><a><blockquote><h2><h3><h4><div><span><table><tbody><thead><tr><td><th>';
+    $html = strip_tags($html, $allowedTags);
+    $html = preg_replace_callback('/<a\b([^>]*)>/i', static function (array $matches): string {
+        $attrs = $matches[1] ?? '';
+        $href = '#';
+        if (preg_match('/href\s*=\s*([\'"])(.*?)\1/i', $attrs, $hrefMatch)) {
+            $candidate = trim(html_entity_decode($hrefMatch[2], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+            if (
+                str_starts_with($candidate, '{{')
+                || preg_match('#^(https?://|mailto:)#i', $candidate)
+                || str_starts_with($candidate, '#')
+            ) {
+                $href = $candidate;
+            }
+        }
+
+        return '<a href="' . e($href) . '">';
+    }, $html) ?? $html;
+
+    return trim($html);
+}

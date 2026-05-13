@@ -10,9 +10,19 @@
       <div class="col-md-2"><label class="form-label">Follow-up stage</label><input class="form-control" type="number" min="0" name="followup_stage" value="<?= e($template['followup_stage']) ?>"></div>
       <div class="col-md-2"><div class="form-check mt-2 mt-md-5"><input class="form-check-input" type="checkbox" name="active" id="active"<?= checked((bool) $template['active']) ?>><label class="form-check-label" for="active">Active</label></div></div>
       <div class="col-12">
-        <label class="form-label">HTML body</label>
-        <textarea class="form-control font-monospace" name="body_html" rows="14" placeholder="<p>Hello {{contact_name}},</p>"><?= e($template['body_html'] ?? '') ?></textarea>
-        <div class="form-text">Use email-safe HTML only. If you enter partial HTML, the system will wrap it in the branded business email shell.</div>
+        <label class="form-label">Main email content</label>
+        <div class="border rounded-3 bg-light p-2 mb-2 wysiwyg-toolbar" role="toolbar" aria-label="Template editor toolbar">
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="bold"><strong>B</strong></button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="italic"><em>I</em></button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="underline"><u>U</u></button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="insertUnorderedList">Bullets</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="insertOrderedList">Numbers</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-link="true">Link</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-command="removeFormat">Clear</button>
+        </div>
+        <div id="bodyHtmlEditor" class="form-control bg-white" contenteditable="true" style="min-height:260px;overflow:auto;line-height:1.6;"><?= sanitize_template_body_html((string) ($template['body_html'] ?? '')) ?></div>
+        <textarea class="d-none" name="body_html" id="bodyHtmlInput"><?= e(sanitize_template_body_html((string) ($template['body_html'] ?? ''))) ?></textarea>
+        <div class="form-text">Edit only the main content. The master email layout automatically adds the header, Next Step block, signature, compliance footer, and unsubscribe link.</div>
       </div>
       <div class="col-12">
         <label class="form-label">Plain text fallback</label>
@@ -29,3 +39,39 @@
     </form>
   </div>
 </div>
+<script>
+(() => {
+  const editor = document.getElementById('bodyHtmlEditor');
+  const input = document.getElementById('bodyHtmlInput');
+  if (!editor || !input) return;
+
+  document.querySelectorAll('.wysiwyg-toolbar [data-command]').forEach((button) => {
+    button.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand(button.getAttribute('data-command'), false, null);
+      input.value = editor.innerHTML;
+    });
+  });
+
+  document.querySelectorAll('.wysiwyg-toolbar [data-link]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const url = window.prompt('Enter a full https:// or mailto: link');
+      if (!url) return;
+      if (!/^(https?:\/\/|mailto:|\{\{)/i.test(url)) {
+        window.alert('Use a full https:// or mailto: link.');
+        return;
+      }
+      editor.focus();
+      document.execCommand('createLink', false, url);
+      input.value = editor.innerHTML;
+    });
+  });
+
+  editor.addEventListener('input', () => {
+    input.value = editor.innerHTML;
+  });
+  editor.closest('form')?.addEventListener('submit', () => {
+    input.value = editor.innerHTML;
+  });
+})();
+</script>

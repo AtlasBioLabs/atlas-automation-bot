@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (['name', 'category', 'subject', 'preheader', 'body_html', 'body_text'] as $field) {
         $template[$field] = trim((string) ($_POST[$field] ?? ''));
     }
+    $template['body_html'] = sanitize_template_body_html($template['body_html']);
     $template['body'] = $template['body_text'] !== '' ? $template['body_text'] : trim(strip_tags($template['body_html']));
     $template['followup_stage'] = (int) ($_POST['followup_stage'] ?? 0);
     $template['active'] = !empty($_POST['active']) ? 1 : 0;

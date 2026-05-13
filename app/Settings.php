@@ -94,20 +94,27 @@ final class Settings
             return null;
         }
 
-        $business['business_name'] = (string) self::option('BUSINESS_NAME', $business['business_name'], $businessProfileId);
-        $business['brand_name'] = (string) self::option('APP_NAME', $business['brand_name'], $businessProfileId);
-        $business['tagline'] = (string) self::option('BUSINESS_TAGLINE', $business['tagline'], $businessProfileId);
-        $business['sender_name'] = (string) self::option('MAIL_FROM_NAME', $business['sender_name'], $businessProfileId);
-        $business['sender_email'] = (string) self::option('MAIL_FROM_EMAIL', $business['sender_email'], $businessProfileId);
-        $business['reply_to_email'] = (string) self::option('MAIL_REPLY_TO', $business['reply_to_email'], $businessProfileId);
-        $business['admin_notification_email'] = (string) self::option('ADMIN_EMAIL', $business['admin_notification_email'], $businessProfileId);
-        $business['business_address'] = (string) self::option('BUSINESS_ADDRESS', $business['business_address'], $businessProfileId);
-        $business['website_url'] = (string) self::option('WEBSITE_URL', $business['website_url'] ?? '', $businessProfileId);
-        $business['company_profile_url'] = (string) self::option('COMPANY_PROFILE_URL', $business['company_profile_url'] ?? '', $businessProfileId);
-        $business['default_signature'] = (string) self::option('DEFAULT_SIGNATURE', $business['default_signature'], $businessProfileId);
-        $business['compliance_footer'] = (string) self::option('COMPLIANCE_FOOTER', $business['compliance_footer'], $businessProfileId);
+        $profileFallbacks = [
+            'business_name' => 'BUSINESS_NAME',
+            'brand_name' => 'APP_NAME',
+            'tagline' => 'BUSINESS_TAGLINE',
+            'sender_name' => 'MAIL_FROM_NAME',
+            'sender_email' => 'MAIL_FROM_EMAIL',
+            'reply_to_email' => 'MAIL_REPLY_TO',
+            'admin_notification_email' => 'ADMIN_EMAIL',
+            'business_address' => 'BUSINESS_ADDRESS',
+            'website_url' => 'WEBSITE_URL',
+            'company_profile_url' => 'COMPANY_PROFILE_URL',
+            'default_signature' => 'DEFAULT_SIGNATURE',
+            'compliance_footer' => 'COMPLIANCE_FOOTER',
+        ];
+        foreach ($profileFallbacks as $profileField => $settingKey) {
+            if (trim((string) ($business[$profileField] ?? '')) === '') {
+                $business[$profileField] = (string) self::option($settingKey, '', $businessProfileId);
+            }
+        }
         $business['unsubscribe_footer_text'] = (string) self::option('UNSUBSCRIBE_FOOTER_TEXT', 'You can unsubscribe using the link included in this email.', $businessProfileId);
-        $business['daily_send_limit'] = (int) self::option('DAILY_SEND_LIMIT', $business['daily_send_limit'], $businessProfileId);
+        $business['daily_send_limit'] = (int) ($business['daily_send_limit'] ?: self::option('DAILY_SEND_LIMIT', 30, $businessProfileId));
         if ($business['company_profile_url'] === '') {
             $business['company_profile_url'] = $business['website_url'];
         }
